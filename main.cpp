@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "GameExceptions.h"
 #include <memory>
+#include <string>
 
 using GameNamespace::Game;
 
@@ -9,10 +10,10 @@ int main(int argc, char* argv[])
     Uint32 frameStart{};
     int frameTime{};
 
-    std::unique_ptr<Game> game{ new Game() };
-
     try
     {
+        std::unique_ptr<Game> game{ new Game() };
+
         while (game->Running())
         {
             frameStart = SDL_GetTicks();
@@ -32,11 +33,19 @@ int main(int argc, char* argv[])
     }
     catch (std::exception& exception)
     {
-        printf(exception.what());
+        std::string errorMessage{ exception.what() };
+        errorMessage.append(SDL_GetError());
+
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", errorMessage.c_str(), NULL);
+        SDL_Quit();
     }
     catch (...)
     {
-        printf("Something went wrong :(");
+        std::string errorMessage{ "Something went wrong :(" };
+        errorMessage.append(SDL_GetError());
+
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", errorMessage.c_str(), NULL);
+        SDL_Quit();
     }
 
     return 0;

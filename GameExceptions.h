@@ -33,6 +33,12 @@ struct MessageNullReference : public std::exception {
 
 struct SDLInitException : public std::exception {
 	const char* what() const throw () {
-		return "SLD_Init exception";
+		return "SDL_Init failed";
+	}
+};
+
+struct TTFInitException : public std::exception {
+	const char* what() const throw () {
+		return "TTF_Init failed";
 	}
 };

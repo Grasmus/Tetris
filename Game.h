@@ -27,14 +27,14 @@ namespace GameNamespace
 		TTF_Font* gameOverFont{};
 		TTF_Font* sceneFont{};
 		std::vector<std::vector<int>> board{};
-		Figure currentFigure{};
-		Figure nextFigure{};
+		FigureKind currentFigure{};
+		FigureKind nextFigure{};
 		size_t rotation{};
 		size_t nextRotation{};
 		POINT currentFigurePosition
 		{
 			BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-			BOARD_POSITION_Y - PIECE_INITIAL_SHIFT_Y
+			BOARD_POSITION_Y
 		};
 		POINT boardPosition
 		{
@@ -54,14 +54,14 @@ namespace GameNamespace
 		std::vector<std::vector<int>> InitializeBoard();
 		bool CheckIsPieceCanMove();
 		bool CheckIsPieceCanMove(Direction direction);
-		bool CheckIsPieceCanRotate();
+		PieceRotation CheckIsPieceCanRotate();
 		void CheckIsGameOver();
 		int CalculateNextRotation();
 		void DeleteLines();
 		void DropUpperBlocks(int yIndex);
 		void SaveCurrentPiece();
 		void DrawFigure();
-		void DrawFigure(Figure figure, size_t rotation, int x, int y);
+		void DrawFigure(FigureKind figure, size_t rotation, int x, int y);
 		void DrawBoard();
 		void DrawScene();
 		void DrawBlock(POINT point, Color color);

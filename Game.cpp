@@ -11,7 +11,14 @@ namespace GameNamespace
 	{
 		if (!SDL_Init(SDL_INIT_EVERYTHING))
 		{
-			window = SDL_CreateWindow(GAME_WINDOW_NAME, 100, 100, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+			window = SDL_CreateWindow(
+				GAME_WINDOW_NAME, 
+				SDL_WINDOWPOS_CENTERED, 
+				SDL_WINDOWPOS_CENTERED, 
+				WINDOW_WIDTH, 
+				WINDOW_HEIGHT, 
+				0
+			);
 
 			if (window == NULL)
 			{
@@ -27,8 +34,7 @@ namespace GameNamespace
 
 			if (TTF_Init() == -1)
 			{
-				SDL_Quit();
-				exit(1);
+				throw TTFInitException();
 			}
 
 			gameOverFont = TTF_OpenFont(FONT_FILE_PATH, GAMEOVER_FONT_SIZE);
@@ -43,8 +49,8 @@ namespace GameNamespace
 
 			isRunning = true;
 			board = InitializeBoard();
-			currentFigure = (Figure)(rand() % PIECE_KINDS);
-			nextFigure = (Figure)(rand() % PIECE_KINDS);
+			currentFigure = (FigureKind)(rand() % PIECE_KINDS);
+			nextFigure = (FigureKind)(rand() % PIECE_KINDS);
 			rotation = rand() % PIECE_ROTATIONS;
 			nextRotation = rand() % PIECE_ROTATIONS;
 		}
@@ -161,44 +167,66 @@ namespace GameNamespace
 	{
 		if (!isGameOver)
 		{
-			if (leftMove && CheckIsPieceCanMove(Direction::Left))
+			if (leftMove)
 			{
-				currentFigurePosition.x -= BLOCK_SIZE;
+				if (CheckIsPieceCanMove(Direction::Left))
+				{
+					currentFigurePosition.x -= BLOCK_SIZE;
+				}
+
 				leftMove = false;
 			}
-			else if (rightMove && CheckIsPieceCanMove(Direction::Right))
+
+			if (rightMove)
 			{
-				currentFigurePosition.x += BLOCK_SIZE;
+				if (CheckIsPieceCanMove(Direction::Right))
+				{
+					currentFigurePosition.x += BLOCK_SIZE;
+				}
+
 				rightMove = false;
 			}
-			else if (rotationMove && CheckIsPieceCanRotate())
+
+			if (rotationMove)
 			{
-				rotation = CalculateNextRotation();
+				PieceRotation pieceRotation{ CheckIsPieceCanRotate() };
+
+				if (pieceRotation.pieceCanRotate)
+				{
+					currentFigurePosition.x += pieceRotation.pieceShift * BLOCK_SIZE;
+					rotation = pieceRotation.nextRotation;
+				}
+
 				rotationMove = false;
 			}
-			else if (CheckIsPieceCanMove())
+
+			if (CheckIsPieceCanMove())
 			{
 				if (currentFrame == FPS || speedUpMove)
 				{
 					currentFigurePosition.y += BLOCK_SIZE;
-					speedUpMove = false;
 				}
+
+				speedUpMove = false;
 			}
 			else
 			{
-				SaveCurrentPiece();
+				if (currentFrame == FPS)
+				{
+					SaveCurrentPiece();
 
-				currentFigure = nextFigure;
-				nextFigure = (Figure)(rand() % PIECE_KINDS);
-				rotation = nextRotation;
-				nextRotation = rand() % PIECE_ROTATIONS;
-				currentFigurePosition = {
-					BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-					BOARD_POSITION_Y - PIECE_INITIAL_SHIFT_Y
-				};
+					currentFigure = nextFigure;
+					nextFigure = (FigureKind)(rand() % PIECE_KINDS);
+					rotation = nextRotation;
+					nextRotation = rand() % PIECE_ROTATIONS;
+					currentFigurePosition = {
+						BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
+						BOARD_POSITION_Y
+					};
 
-				DeleteLines();
-				CheckIsGameOver();
+					DeleteLines();
+					CheckIsGameOver();
+				}
 			}
 		}
 		else
@@ -206,13 +234,13 @@ namespace GameNamespace
 			if (startAgain)
 			{
 				board = InitializeBoard();
-				currentFigure = (Figure)(rand() % PIECE_KINDS);
-				nextFigure = (Figure)(rand() % PIECE_KINDS);
+				currentFigure = (FigureKind)(rand() % PIECE_KINDS);
+				nextFigure = (FigureKind)(rand() % PIECE_KINDS);
 				rotation = rand() % PIECE_ROTATIONS;
 				nextRotation = rand() % PIECE_ROTATIONS;
 				currentFigurePosition = {
 					BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-					BOARD_POSITION_Y - PIECE_INITIAL_SHIFT_Y
+					BOARD_POSITION_Y
 				};
 
 				isGameOver = false;
@@ -280,11 +308,11 @@ namespace GameNamespace
 		int primalPosition{ currentFigurePosition.x };
 		POINT piecePosition{ currentFigurePosition };
 
-		for (int i = 0; i < PIECES_SIZE; i++)
+		for (size_t i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
-			for (int j = 0; j < PIECES_SIZE; j++)
+			for (size_t j{}; j < Figures[static_cast<int>(currentFigure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][rotation][i][j] == 0)
+				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] == 0)
 				{
 					piecePosition.x += BLOCK_SIZE;
 				}
@@ -300,16 +328,16 @@ namespace GameNamespace
 		}
 	}
 
-	void Game::DrawFigure(Figure figure, size_t rotation, int x, int y)
+	void Game::DrawFigure(FigureKind figure, size_t rotation, int x, int y)
 	{
-		int primalPosition{ x };
+		int primalXPosition{ x };
 		POINT piecePosition{ x, y };
 
-		for (int i = 0; i < PIECES_SIZE; i++)
+		for (size_t i{}; i < Figures[static_cast<int>(figure)][rotation].size(); i++)
 		{
-			for (int j = 0; j < PIECES_SIZE; j++)
+			for (size_t j{}; j < Figures[static_cast<int>(figure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(figure)][rotation][i][j] == 0)
+				if (Figures[static_cast<int>(figure)][rotation][i][j] == 0)
 				{
 					piecePosition.x += BLOCK_SIZE;
 				}
@@ -321,50 +349,61 @@ namespace GameNamespace
 			}
 
 			piecePosition.y += BLOCK_SIZE;
-			piecePosition.x = primalPosition;
+			piecePosition.x = primalXPosition;
 		}
 	}
 
 	void Game::DrawBoard()
 	{
-		int initialX{ boardPosition.x };
-		POINT block_position{ boardPosition };
+		int primalXPosition{ boardPosition.x };
+		POINT blockPosition{ boardPosition };
 
-		for (int i{}; i < BOARD_HEIGHT / BLOCK_SIZE; i++)
+		int boardHeightInBlocks = BOARD_HEIGHT / BLOCK_SIZE;
+		int boardWidthInBlocks = BOARD_WIDTH / BLOCK_SIZE;
+
+		for (int i{}; i < boardHeightInBlocks; i++)
 		{
-			for (int j{}; j < BOARD_WIDTH / BLOCK_SIZE; j++)
+			for (int j{}; j < boardWidthInBlocks; j++)
 			{
 				switch (board[i][j])
 				{
 				case 3:
-					DrawBlock(block_position, Color::white);
+
+					if(i >= 1)
+					{
+						DrawBlock(blockPosition, Color::white);
+					}
+					
 					break;
 
 				case 2:
-					DrawBlock(block_position, Color::green);
+					DrawBlock(blockPosition, Color::green);
 					break;
 
 				default:
 					break;
 				}
-				block_position.x += BLOCK_SIZE;
+
+				blockPosition.x += BLOCK_SIZE;
 			}
-			block_position.x = initialX;
-			block_position.y += BLOCK_SIZE;
+
+			blockPosition.x = primalXPosition;
+			blockPosition.y += BLOCK_SIZE;
 		}
 	}
 
 	std::vector<std::vector<int>> Game::InitializeBoard()
 	{
 		int boardHeightInBlocks = BOARD_HEIGHT / BLOCK_SIZE;
-		int boardWidthinBlocks = BOARD_WIDTH / BLOCK_SIZE;
-		std::vector<std::vector<int>> board(boardHeightInBlocks, std::vector<int>(boardWidthinBlocks));
+		int boardWidthInBlocks = BOARD_WIDTH / BLOCK_SIZE;
+		std::vector<std::vector<int>> board(
+			boardHeightInBlocks, std::vector<int>(boardWidthInBlocks));
 
-		for (int i = 0; i < boardHeightInBlocks; i++)
+		for (int i{}; i < boardHeightInBlocks; i++)
 		{
-			for (int j = 0; j < boardWidthinBlocks; j++)
+			for (int j{}; j < boardWidthInBlocks; j++)
 			{
-				if (j == 0 || i == boardHeightInBlocks - 1 || j == boardWidthinBlocks - 1)
+				if (j == 0 || i == boardHeightInBlocks - 1 || j == boardWidthInBlocks - 1)
 				{
 					board[i][j] = 3;
 				}
@@ -383,16 +422,16 @@ namespace GameNamespace
 		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
 		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE + 1;
 
-		for (int i{}; i < PIECES_SIZE; i++)
+		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
 			if (yIndex + i < 0)
 			{
 				continue;
 			}
 
-			for (int j{}; j < PIECES_SIZE; j++)
+			for (int j{}; j < Figures[static_cast<int>(currentFigure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][rotation][i][j] != 0)
+				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] != 0)
 				{
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
@@ -410,16 +449,16 @@ namespace GameNamespace
 		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE + (int)direction;
 		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
 
-		for (int i{}; i < PIECES_SIZE; i++)
+		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
 			if (yIndex + i < 0)
 			{
 				continue;
 			}
 
-			for (int j{}; j < PIECES_SIZE; j++)
+			for (int j{}; j < Figures[static_cast<int>(currentFigure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][rotation][i][j] != 0)
+				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] != 0)
 				{
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
@@ -432,32 +471,66 @@ namespace GameNamespace
 		return true;
 	}
 
-	bool Game::CheckIsPieceCanRotate()
+	PieceRotation Game::CheckIsPieceCanRotate()
 	{
-		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
-		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
-		int nextRotation = CalculateNextRotation();
+ 		int xIndex{ (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE };
+		int yIndex{ (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE };
+		int nextRotation{ CalculateNextRotation() };
 
-		for (int i{}; i < PIECES_SIZE; i++)
+		PieceRotation pieceRotaion{};
+
+ 		int leftShift
+		{ 
+			xIndex 
+			+ 
+			(int)Figures[static_cast<int>(currentFigure)][nextRotation][0].size() + 1
+			- 
+			(int)(BOARD_WIDTH / BLOCK_SIZE) 
+		};
+
+		if (leftShift < 0)
+		{
+			leftShift = 0;
+		}
+
+		xIndex -= leftShift;
+
+		int rightShift{ 0 - xIndex + 1 };
+
+		if (rightShift < 0)
+		{
+			rightShift = 0;
+		}
+
+		xIndex += rightShift;
+
+		for (int i{}; i < Figures[static_cast<int>(currentFigure)][nextRotation].size(); i++)
 		{
 			if (yIndex + i < 0)
 			{
 				continue;
 			}
 
-			for (int j{}; j < PIECES_SIZE; j++)
+			for (int j{}; j < Figures[static_cast<int>(currentFigure)][nextRotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][nextRotation][i][j] != 0)
+				if (Figures[static_cast<int>(currentFigure)][nextRotation][i][j] != 0)
 				{
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
-						return false;
+						pieceRotaion.pieceCanRotate = false;
+						return pieceRotaion;
 					}
 				}
 			}
 		}
 
-		return true;
+		pieceRotaion.pieceShift -= leftShift;
+		pieceRotaion.pieceShift += rightShift;
+
+		pieceRotaion.nextRotation = nextRotation;
+		pieceRotaion.pieceCanRotate = true;
+
+		return pieceRotaion;
 	}
 
 	int Game::CalculateNextRotation()
@@ -477,16 +550,16 @@ namespace GameNamespace
 		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
 		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
 
-		for (int i{}; i < PIECES_SIZE; i++)
+		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
 			if (yIndex + i < 0)
 			{
 				continue;
 			}
 
-			for (int j{}; j < PIECES_SIZE; j++)
+			for (int j{}; j < Figures[static_cast<int>(currentFigure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][rotation][i][j] != 0)
+				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] != 0)
 				{
 					board[yIndex + i][xIndex + j] = 2;
 				}
@@ -551,16 +624,16 @@ namespace GameNamespace
 		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
 		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
 
-		for (int i{}; i < PIECES_SIZE; i++)
+		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
 			if (yIndex + i < 0)
 			{
 				continue;
 			}
 
-			for (int j{}; j < PIECES_SIZE; j++)
+			for (int j{}; j < Figures[static_cast<int>(currentFigure)][rotation][i].size(); j++)
 			{
-				if (mPieces[static_cast<int>(currentFigure)][rotation][i][j] != 0)
+				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] != 0)
 				{
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
