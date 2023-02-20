@@ -5,6 +5,8 @@
 #include <SDL.h>
 #include <SDL_main.h>
 #include <vector>
+#include "Button.h"
+#include <memory>
 
 namespace GameNamespace
 {
@@ -17,8 +19,7 @@ namespace GameNamespace
 		void HandleEvents();
 		void Render();
 		void Update();
-		bool Running();
-		void AddFrame();
+		bool IsRunning();
 		int GetFrameDelay();
 
 	private:
@@ -26,6 +27,10 @@ namespace GameNamespace
 		SDL_Window* window{};
 		TTF_Font* gameOverFont{};
 		TTF_Font* sceneFont{};
+		SDL_Texture* blockTexture{};
+		SDL_Texture* backgroundTexture{};
+		SDL_Texture* boardTexture{};
+		SDL_Texture* infoBlockTexture{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
@@ -41,15 +46,23 @@ namespace GameNamespace
 			BOARD_POSITION_X,
 			BOARD_POSITION_Y
 		};
-		bool isRunning{ false };
-		bool isGameOver{ false };
-		bool leftMove{ false };
-		bool rightMove{ false };
-		bool rotationMove{ false };
-		bool speedUpMove{ false };
-		bool startAgain{ false };
+		std::unique_ptr<Button> menuButton{};
+
+		GameState gameState{ GameState::MenuMode };
+
+		PieceMovement pieceMovement{ PieceMovement::None };
+
 		int currentFrame{};
 		int score{};
+
+		void HandleMainMenuEvent(SDL_Event event);
+		void HandleGameEvent(SDL_Event event);
+		void HandleGamePausedEvent(SDL_Event event);
+		void HandleGameOverEvent(SDL_Event event);
+
+		void MovePiece();
+		void InitializeGame();
+		void GoToNextPiece();
 
 		std::vector<std::vector<int>> InitializeBoard();
 		bool CheckIsPieceCanMove();
@@ -57,6 +70,7 @@ namespace GameNamespace
 		PieceRotation CheckIsPieceCanRotate();
 		void CheckIsGameOver();
 		int CalculateNextRotation();
+		void AddFrame();
 		void DeleteLines();
 		void DropUpperBlocks(int yIndex);
 		void SaveCurrentPiece();
@@ -65,6 +79,7 @@ namespace GameNamespace
 		void DrawBoard();
 		void DrawScene();
 		void DrawBlock(POINT point, Color color);
+		void DrawBlock(POINT point, SDL_Texture* texture);
 		void SetColor(Color color);
 		void CreateMessage(
 			Font fontKind,
@@ -74,5 +89,7 @@ namespace GameNamespace
 		TTF_Font* GetFont(Font font);
 		void PrintGameOver();
 		void AddScore();
+		void PrintPauseGame();
+		SDL_Texture* LoadTexture(const char* textureFilePath);
 	};
 }

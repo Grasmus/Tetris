@@ -4,100 +4,160 @@
 
 namespace GameNamespace
 {
-    typedef const std::vector<std::vector<std::vector<std::vector<int>>>> FigureContainer;
+    typedef std::vector<std::vector<std::vector<std::vector<int>>>> FigureContainer;
     typedef std::vector<std::vector<int>> Figure;
 
-    unsigned short const
-        BOARD_WIDTH{ 220 },
-        BOARD_HEIGHT{ 460 },
-        BLOCK_SIZE{ 20 },
-        BOARD_POSITION_X{ 60 },
-        BOARD_POSITION_Y{ 100 },
+    const int
+        WINDOW_WIDTH{ 1920 },
+        WINDOW_HEIGHT{ 1080 },
+
+        BLOCK_SIZE{ WINDOW_WIDTH / 48 },
+
+        BOARD_WIDTH_IN_BLOCKS{ 11 },
+        BOARD_HEIGHT_IN_BLOCKS{ 23 },
+
+        BOARD_WIDTH{ BOARD_WIDTH_IN_BLOCKS * BLOCK_SIZE },
+        BOARD_HEIGHT{ BOARD_HEIGHT_IN_BLOCKS * BLOCK_SIZE },
+
+        BOARD_POSITION_X{ (WINDOW_WIDTH - BOARD_WIDTH) / 2 },
+        BOARD_POSITION_Y{ (WINDOW_HEIGHT - BOARD_HEIGHT) / 2 },
+
         TIME_DELAY{ 5 },
-        WINDOW_HEIGHT{ 600 },
-        WINDOW_WIDTH{ 500 },
         PIECE_KINDS{ 7 },
         PIECE_ROTATIONS{ 4 },
-        PIECES_SIZE{ 5 },
         PIECE_INITIAL_SHIFT_X{ BLOCK_SIZE * 4 },
         FPS{ 60 },
         FRAME_DELAY{ 400 / FPS },
-        NEXT_PIECE_POSITION_X{ 370 },
-        NEXT_PIECE_POSITION_Y{ 250 },
-        YOUR_SCORE_POSITION_X{ 340 },
-        YOUR_SCORE_POSITION_Y{ 110 },
-        SCORE_ADDITION{ 1 },
+
+        SCORE_DIGIT_HEIGHT{ BLOCK_SIZE },
+        SCORE_DIGIT_WIDTH{ BLOCK_SIZE },
+
         NUMBER_OF_SCORE_DIGITS{ 5 },
-        DIGITS_GAP{ 25 };
+        DIGITS_GAP{ SCORE_DIGIT_WIDTH / 10 },
 
-    const int SCORE_MAX_VALUE{ 99999 };
+        INFO_BLOCK_POSITION_X{ BOARD_POSITION_X + BOARD_WIDTH },
+        INFO_BLOCK_POSITION_Y{ BOARD_POSITION_Y + 2 * BLOCK_SIZE },
 
-    const char* const GAME_WINDOW_NAME = "Tetris";
+        INFO_BLOCK_WIDTH{ 7 * BLOCK_SIZE },
+        INFO_BLOCK_HEIGHT{ 13 * BLOCK_SIZE },
 
-    const char* const FONT_FILE_PATH = "./FFFFORWA.TTF";
-    const int GAMEOVER_FONT_SIZE = 24;
-    const int SCENE_FONT_SIZE = 24;
-    const SDL_Color 
-        MAIN_FONT_COLOR{ 255, 0, 0 },
-        SECONDARY_FONT_COLOR{ 255, 255, 255 };
+        SCORE_HEIGHT{ SCORE_DIGIT_HEIGHT },
+        SCORE_WIDTH{ (SCORE_DIGIT_WIDTH + DIGITS_GAP) * NUMBER_OF_SCORE_DIGITS - DIGITS_GAP },
+
+        SCORE_POSITION_X{ INFO_BLOCK_POSITION_X + (INFO_BLOCK_WIDTH - SCORE_WIDTH) / 2 },
+        SCORE_POSITION_Y{ INFO_BLOCK_POSITION_Y + 11 * BLOCK_SIZE / 4 },
+
+        NEXT_PIECE_POSITION_Y{ INFO_BLOCK_POSITION_Y + 8 * BLOCK_SIZE },
+
+        GAME_OVER_MESSAGE_WIDTH{ 25 * BLOCK_SIZE },
+        GAME_OVER_MESSAGE_HEIGHT{ GAME_OVER_MESSAGE_WIDTH / 5 },
+
+        START_AGAIN_MESSAGE_WIDTH{ GAME_OVER_MESSAGE_WIDTH / 2 },
+        START_AGAIN_MESSAGE_HEIGHT{ GAME_OVER_MESSAGE_HEIGHT / 5 },
+
+        BACKGROUND_RECT_WIDTH{ WINDOW_WIDTH },
+        BACKGROUND_RECT_HEIGHT
+        {
+            START_AGAIN_MESSAGE_HEIGHT + GAME_OVER_MESSAGE_HEIGHT + 2 * BLOCK_SIZE
+        },
+
+        SCORE_ADDITION{ 9 },
+        SCORE_MAX_VALUE{ 99999 },
+        MAIN_FONT_SIZE{ 24 },
+        SCENE_FONT_SIZE{ 24 },
+        BUTTON_HEIGHT{ 140 },
+        BUTTON_WIDTH{ 240 };
+
+    const char* const GAME_WINDOW_NAME{ "Tetris" };
+    
+    const char* const FONT_FILE_PATH{ "./Fonts/FFFFORWA.TTF" };
+
+    const char* const BLOCK_TEXTURE_FILE_PATH{ "./Textures/block_texture.png" };
+    const char* const BACKGROUND_TEXTURE_FILE_PATH{ "./Textures/background_image.jpg" };
+    const char* const BOARD_TEXTURE_FILE_PATH{ "./Textures/board_texture.png" };
+    const char* const INFO_BLOCK_TEXTURE_FILE_PATH{ "./Textures/info_block_texture.png" };
+
+    const SDL_Color
+        BUTTON_FONT_COLOR{ 255, 0, 0 },
+        MAIN_FONT_COLOR{ 255, 0, 0 };
 
     const SDL_Rect GAME_OVER_MESSAGE_RECTANGLE
     {
-        30, 240, 300, 100
+        (WINDOW_WIDTH - GAME_OVER_MESSAGE_WIDTH) / 2, 
+        (WINDOW_HEIGHT - BACKGROUND_RECT_HEIGHT) / 2 + BLOCK_SIZE,
+        GAME_OVER_MESSAGE_WIDTH,
+        GAME_OVER_MESSAGE_HEIGHT
     };
 
     const SDL_Rect START_AGAIN_MESSAGE_RECTANGLE
     {
-        50, 340, 250, 35
+        (WINDOW_WIDTH - START_AGAIN_MESSAGE_WIDTH) / 2,
+        (WINDOW_HEIGHT - BACKGROUND_RECT_HEIGHT) / 2 + GAME_OVER_MESSAGE_HEIGHT + BLOCK_SIZE,
+        START_AGAIN_MESSAGE_WIDTH, 
+        START_AGAIN_MESSAGE_HEIGHT
     };
 
-    const SDL_Rect NEXT_PIECE_MESSAGE_RECTANGLE
+    const SDL_Rect BACKGROUND_RECTANGLE
     {
-        NEXT_PIECE_POSITION_X - 2 * BLOCK_SIZE,
-        NEXT_PIECE_POSITION_Y - 2 * BLOCK_SIZE,
-        150,
-        35
+        0,
+        (WINDOW_HEIGHT - BACKGROUND_RECT_HEIGHT) / 2,
+        BACKGROUND_RECT_WIDTH,
+        BACKGROUND_RECT_HEIGHT
     };
 
-    const SDL_Rect YOUR_SCORE_MESSAGE_RECTANGLE
+    const SDL_Rect INFO_BLOCK_RECT
     {
-        YOUR_SCORE_POSITION_X - 10,
-        YOUR_SCORE_POSITION_Y,
-        150,
-        35
+        INFO_BLOCK_POSITION_X,
+        INFO_BLOCK_POSITION_Y,
+        INFO_BLOCK_WIDTH,
+        INFO_BLOCK_HEIGHT
+    };
+
+    const SDL_Rect BOARD_RECT
+    {
+        BOARD_POSITION_X + BLOCK_SIZE,
+        BOARD_POSITION_Y + 2 * BLOCK_SIZE,
+        BOARD_WIDTH - 2 * BLOCK_SIZE,
+        BOARD_HEIGHT - 3 * BLOCK_SIZE
+    };
+
+    const POINT MENU_BUTTON_POINT
+    {
+        (WINDOW_WIDTH - BUTTON_WIDTH) / 2,
+        (WINDOW_HEIGHT - BUTTON_HEIGHT) / 2
     };
 
     const std::vector<SDL_Rect> SCORE_MESSAGE_RECTANGLES
     {
         {
-            YOUR_SCORE_POSITION_X,
-            YOUR_SCORE_POSITION_Y + 2 * BLOCK_SIZE,
-            30,
-            30
+            SCORE_POSITION_X,
+            SCORE_POSITION_Y,
+            SCORE_DIGIT_WIDTH,
+            SCORE_DIGIT_HEIGHT
         },
         {
-            YOUR_SCORE_POSITION_X + DIGITS_GAP,
-            YOUR_SCORE_POSITION_Y + 2 * BLOCK_SIZE,
-            30,
-            30
+            SCORE_POSITION_X + SCORE_DIGIT_WIDTH + DIGITS_GAP,
+            SCORE_POSITION_Y,
+            SCORE_DIGIT_WIDTH,
+            SCORE_DIGIT_HEIGHT
         },
         {
-            YOUR_SCORE_POSITION_X + 2 * DIGITS_GAP,
-            YOUR_SCORE_POSITION_Y + 2 * BLOCK_SIZE,
-            30,
-            30
+            SCORE_POSITION_X + 2 * (SCORE_DIGIT_WIDTH + DIGITS_GAP),
+            SCORE_POSITION_Y,
+            SCORE_DIGIT_WIDTH,
+            SCORE_DIGIT_HEIGHT
         },
         {
-            YOUR_SCORE_POSITION_X + 3 * DIGITS_GAP,
-            YOUR_SCORE_POSITION_Y + 2 * BLOCK_SIZE,
-            30,
-            30
+            SCORE_POSITION_X + 3 * (SCORE_DIGIT_WIDTH + DIGITS_GAP),
+            SCORE_POSITION_Y,
+            SCORE_DIGIT_WIDTH,
+            SCORE_DIGIT_HEIGHT
         },
         {
-            YOUR_SCORE_POSITION_X + 4 * DIGITS_GAP,
-            YOUR_SCORE_POSITION_Y + 2 * BLOCK_SIZE,
-            30,
-            30
+            SCORE_POSITION_X + 4 * (SCORE_DIGIT_WIDTH + DIGITS_GAP),
+            SCORE_POSITION_Y,
+            SCORE_DIGIT_WIDTH,
+            SCORE_DIGIT_HEIGHT
         }
     };
 
@@ -106,6 +166,7 @@ namespace GameNamespace
         green,
         blue,
         black,
+        transparentBlack,
         white
     };
 
@@ -120,7 +181,7 @@ namespace GameNamespace
         T = 6
     };
 
-    FigureContainer Figures
+    const FigureContainer Figures
     {
         {
             {
@@ -276,6 +337,24 @@ namespace GameNamespace
     {
         Left = -1,
         Right = 1
+    };
+
+    enum class GameState
+    {
+        MenuMode,
+        Inactive,
+        Running,
+        Paused,
+        GameOver
+    };
+
+    enum class PieceMovement
+    {
+        None,
+        Left,
+        Right,
+        Rotation,
+        SpeedUp,
     };
 
     struct PieceRotation 

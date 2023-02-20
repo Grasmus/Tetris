@@ -4,60 +4,73 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <SDL_image.h>
 
 namespace GameNamespace
 {
 	Game::Game()
 	{
-		if (!SDL_Init(SDL_INIT_EVERYTHING))
-		{
-			window = SDL_CreateWindow(
-				GAME_WINDOW_NAME, 
-				SDL_WINDOWPOS_CENTERED, 
-				SDL_WINDOWPOS_CENTERED, 
-				WINDOW_WIDTH, 
-				WINDOW_HEIGHT, 
-				0
-			);
-
-			if (window == NULL)
-			{
-				throw WindowCreationException();
-			}
-
-			renderer = SDL_CreateRenderer(window, -1, 0);
-
-			if (renderer == NULL)
-			{
-				throw RenderCreationException();
-			}
-
-			if (TTF_Init() == -1)
-			{
-				throw TTFInitException();
-			}
-
-			gameOverFont = TTF_OpenFont(FONT_FILE_PATH, GAMEOVER_FONT_SIZE);
-			sceneFont = TTF_OpenFont(FONT_FILE_PATH, SCENE_FONT_SIZE);
-
-			if (gameOverFont == NULL || sceneFont == NULL)
-			{
-				throw FontNullReference();
-			}
-
-			srand(time(NULL));
-
-			isRunning = true;
-			board = InitializeBoard();
-			currentFigure = (FigureKind)(rand() % PIECE_KINDS);
-			nextFigure = (FigureKind)(rand() % PIECE_KINDS);
-			rotation = rand() % PIECE_ROTATIONS;
-			nextRotation = rand() % PIECE_ROTATIONS;
-		}
-		else
+		if (SDL_Init(SDL_INIT_EVERYTHING))
 		{
 			throw SDLInitException();
 		}
+
+		window = SDL_CreateWindow(
+			GAME_WINDOW_NAME,
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			WINDOW_WIDTH,
+			WINDOW_HEIGHT,
+			0
+		);
+
+		if (window == NULL)
+		{
+			throw WindowCreationException();
+		}
+
+		renderer = SDL_CreateRenderer(window, -1, 0);
+
+		if (renderer == NULL)
+		{
+			throw RenderCreationException();
+		}
+
+		if (TTF_Init() == -1)
+		{
+			throw TTFInitException();
+		}
+
+		gameOverFont = TTF_OpenFont(FONT_FILE_PATH, MAIN_FONT_SIZE);
+		sceneFont = TTF_OpenFont(FONT_FILE_PATH, SCENE_FONT_SIZE);
+
+		if (gameOverFont == NULL || sceneFont == NULL)
+		{
+			throw FontNullReference();
+		}
+
+		blockTexture = LoadTexture(BLOCK_TEXTURE_FILE_PATH);
+		backgroundTexture = LoadTexture(BACKGROUND_TEXTURE_FILE_PATH);
+		boardTexture = LoadTexture(BOARD_TEXTURE_FILE_PATH);
+		infoBlockTexture = LoadTexture(INFO_BLOCK_TEXTURE_FILE_PATH);
+
+		if (SDL_SetTextureAlphaMod(boardTexture, 100))
+		{
+			throw SetTextureAlphaModException();
+		}
+
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+		srand(time(NULL));
+
+		menuButton = std::make_unique<Button>(
+			MENU_BUTTON_POINT,
+			BUTTON_HEIGHT, 
+			BUTTON_WIDTH, 
+			renderer, 
+			"Play", 
+			sceneFont, 
+			BUTTON_FONT_COLOR);
 	}
 
 	Game::~Game()
@@ -73,91 +86,62 @@ namespace GameNamespace
 
 		SDL_PollEvent(&event);
 
-		if (!isGameOver)
+		switch (gameState)
 		{
-			switch (event.type)
-			{
-			case SDL_QUIT:
-				isRunning = false;
-				break;
+		case GameState::Running:
+			HandleGameEvent(event);
+			break;
 
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_a:
-					leftMove = true;
-					break;
+		case GameState::Paused:
+			HandleGamePausedEvent(event);
+			break;
 
-				case SDLK_LEFT:
-					leftMove = true;
-					break;
+		case GameState::GameOver:
+			HandleGameOverEvent(event);
+			break;
 
-				case SDLK_d:
-					rightMove = true;
-					break;
+		case GameState::MenuMode:
+			HandleMainMenuEvent(event);
+			break;
 
-				case SDLK_RIGHT:
-					rightMove = true;
-					break;
-
-				case SDLK_SPACE:
-					rotationMove = true;
-					break;
-
-				case SDLK_s:
-					speedUpMove = true;
-					break;
-
-				case SDLK_DOWN:
-					speedUpMove = true;
-					break;
-
-				default:
-					break;
-				}
-				break;
-
-			default:
-				break;
-			}
-		}
-		else
-		{
-			switch (event.type)
-			{
-			case SDL_QUIT:
-				isRunning = false;
-				break;
-
-			case SDL_KEYDOWN:
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_RETURN:
-					startAgain = true;
-					break;
-
-				default:
-					break;
-				}
-				break;
-
-			default:
-				break;
-			}
+		default:
+			break;
 		}
 	}
 
 	void Game::Render()
 	{
-		SetColor(BACKGROUND_COLOR);
 		SDL_RenderClear(renderer);
-		DrawBoard();
-		DrawFigure();
-		DrawScene();
+		SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
 
-		if (isGameOver)
+		switch (gameState)
 		{
+		case GameState::Running:
+			DrawBoard();
+			DrawFigure();
+			DrawScene();
+			break;
+
+		case GameState::Paused:
+			DrawBoard();
+			DrawFigure();
+			DrawScene();
+			PrintPauseGame();
+			break;
+
+		case GameState::GameOver:
+			DrawBoard();
+			DrawFigure();
+			DrawScene();
 			PrintGameOver();
+			break;
+
+		case GameState::MenuMode:
+			menuButton->RenderButton(renderer);
+			break;
+
+		default:
+			break;
 		}
 
 		SDL_RenderPresent(renderer);
@@ -165,94 +149,24 @@ namespace GameNamespace
 
 	void Game::Update()
 	{
-		if (!isGameOver)
+		switch (gameState)
 		{
-			if (leftMove)
-			{
-				if (CheckIsPieceCanMove(Direction::Left))
-				{
-					currentFigurePosition.x -= BLOCK_SIZE;
-				}
+		case GameState::Running:
 
-				leftMove = false;
-			}
+			MovePiece();
 
-			if (rightMove)
-			{
-				if (CheckIsPieceCanMove(Direction::Right))
-				{
-					currentFigurePosition.x += BLOCK_SIZE;
-				}
+			break;
 
-				rightMove = false;
-			}
-
-			if (rotationMove)
-			{
-				PieceRotation pieceRotation{ CheckIsPieceCanRotate() };
-
-				if (pieceRotation.pieceCanRotate)
-				{
-					currentFigurePosition.x += pieceRotation.pieceShift * BLOCK_SIZE;
-					rotation = pieceRotation.nextRotation;
-				}
-
-				rotationMove = false;
-			}
-
-			if (CheckIsPieceCanMove())
-			{
-				if (currentFrame == FPS || speedUpMove)
-				{
-					currentFigurePosition.y += BLOCK_SIZE;
-				}
-
-				speedUpMove = false;
-			}
-			else
-			{
-				if (currentFrame == FPS)
-				{
-					SaveCurrentPiece();
-
-					currentFigure = nextFigure;
-					nextFigure = (FigureKind)(rand() % PIECE_KINDS);
-					rotation = nextRotation;
-					nextRotation = rand() % PIECE_ROTATIONS;
-					currentFigurePosition = {
-						BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-						BOARD_POSITION_Y
-					};
-
-					DeleteLines();
-					CheckIsGameOver();
-				}
-			}
+		default:
+			break;
 		}
-		else
-		{
-			if (startAgain)
-			{
-				board = InitializeBoard();
-				currentFigure = (FigureKind)(rand() % PIECE_KINDS);
-				nextFigure = (FigureKind)(rand() % PIECE_KINDS);
-				rotation = rand() % PIECE_ROTATIONS;
-				nextRotation = rand() % PIECE_ROTATIONS;
-				currentFigurePosition = {
-					BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-					BOARD_POSITION_Y
-				};
 
-				isGameOver = false;
-				startAgain = false;
-				score = 0;
-			}
-		}
+		AddFrame();
 	}
 
-	bool Game::Running()
+	bool Game::IsRunning()
 	{
-		return isRunning;
+		return gameState != GameState::Inactive;
 	}
 
 	void Game::DrawBlock(POINT point, Color color)
@@ -266,7 +180,20 @@ namespace GameNamespace
 		};
 
 		SetColor(color);
-		SDL_RenderDrawRect(renderer, &rect);
+		SDL_RenderFillRect(renderer, &rect);
+	}
+
+	void Game::DrawBlock(POINT point, SDL_Texture* texture)
+	{
+		SDL_Rect rect
+		{
+			point.x,
+			point.y,
+			BLOCK_SIZE,
+			BLOCK_SIZE
+		};
+
+		SDL_RenderCopy(renderer, texture, NULL, &rect);
 	}
 
 	void Game::SetColor(Color color)
@@ -291,6 +218,10 @@ namespace GameNamespace
 
 		case Color::white:
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+			break;
+
+		case Color::transparentBlack:
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
 			break;
 
 		default:
@@ -318,7 +249,7 @@ namespace GameNamespace
 				}
 				else
 				{
-					DrawBlock(piecePosition, Color::green);
+					DrawBlock(piecePosition, blockTexture);
 					piecePosition.x += BLOCK_SIZE;
 				}
 			}
@@ -343,7 +274,7 @@ namespace GameNamespace
 				}
 				else
 				{
-					DrawBlock(piecePosition, Color::green);
+					DrawBlock(piecePosition, blockTexture);
 					piecePosition.x += BLOCK_SIZE;
 				}
 			}
@@ -355,29 +286,21 @@ namespace GameNamespace
 
 	void Game::DrawBoard()
 	{
+		SDL_RenderCopy(renderer, boardTexture, NULL, &BOARD_RECT);
 		int primalXPosition{ boardPosition.x };
 		POINT blockPosition{ boardPosition };
 
-		int boardHeightInBlocks = BOARD_HEIGHT / BLOCK_SIZE;
-		int boardWidthInBlocks = BOARD_WIDTH / BLOCK_SIZE;
-
-		for (int i{}; i < boardHeightInBlocks; i++)
+		for (int i{}; i < BOARD_HEIGHT_IN_BLOCKS; i++)
 		{
-			for (int j{}; j < boardWidthInBlocks; j++)
+			for (int j{}; j < BOARD_WIDTH_IN_BLOCKS; j++)
 			{
 				switch (board[i][j])
 				{
 				case 3:
-
-					if(i >= 1)
-					{
-						DrawBlock(blockPosition, Color::white);
-					}
-					
 					break;
 
 				case 2:
-					DrawBlock(blockPosition, Color::green);
+					DrawBlock(blockPosition, blockTexture);
 					break;
 
 				default:
@@ -392,18 +315,271 @@ namespace GameNamespace
 		}
 	}
 
+	void Game::HandleMainMenuEvent(SDL_Event event)
+	{
+		int mouseCoordinateX{}, mouseCoordinateY{};
+
+		switch (event.type)
+		{
+		case SDL_QUIT:
+			gameState = GameState::Inactive;
+			break;
+
+		case SDL_MOUSEBUTTONDOWN:
+
+			switch (event.button.button)
+			{
+			case SDL_BUTTON_LEFT:
+
+				SDL_GetMouseState(&mouseCoordinateX, &mouseCoordinateY);
+
+				if (menuButton->PressButton({ mouseCoordinateX, mouseCoordinateY }))
+				{
+					InitializeGame();
+				}
+				break;
+
+			default:
+				break;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	void Game::HandleGameEvent(SDL_Event event)
+	{
+		switch (event.type)
+		{
+		case SDL_QUIT:
+			gameState = GameState::Inactive;
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_a:
+				pieceMovement = PieceMovement::Left;
+				break;
+
+			case SDLK_LEFT:
+				pieceMovement = PieceMovement::Left;
+				break;
+
+			case SDLK_d:
+				pieceMovement = PieceMovement::Right;
+				break;
+
+			case SDLK_RIGHT:
+				pieceMovement = PieceMovement::Right;
+				break;
+
+			case SDLK_SPACE:
+				pieceMovement = PieceMovement::Rotation;
+				break;
+
+			case SDLK_s:
+				pieceMovement = PieceMovement::SpeedUp;
+				break;
+
+			case SDLK_DOWN:
+				pieceMovement = PieceMovement::SpeedUp;
+				break;
+
+			case SDLK_ESCAPE:
+				gameState = GameState::Paused;
+				break;
+
+			default:
+				break;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	void Game::HandleGamePausedEvent(SDL_Event event)
+	{
+		switch (event.type)
+		{
+		case SDL_QUIT:
+			gameState = GameState::Inactive;
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_RETURN:
+				gameState = GameState::Running;
+				break;
+
+			case SDLK_ESCAPE:
+				gameState = GameState::MenuMode;
+				break;
+
+			default:
+				break;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	void Game::HandleGameOverEvent(SDL_Event event)
+	{
+		switch (event.type)
+		{
+		case SDL_QUIT:
+			gameState = GameState::Inactive;
+			break;
+
+		case SDL_KEYDOWN:
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_RETURN:
+				InitializeGame();
+				break;
+
+			case SDLK_ESCAPE:
+				gameState = GameState::MenuMode;
+				break;
+
+			default:
+				break;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	void Game::MovePiece()
+	{
+		PieceRotation pieceRotation{};
+
+		switch (pieceMovement)
+		{
+		case PieceMovement::Left:
+
+			if (CheckIsPieceCanMove(Direction::Left))
+			{
+				currentFigurePosition.x -= BLOCK_SIZE;
+			}
+			break;
+
+		case PieceMovement::Right:
+
+			if (CheckIsPieceCanMove(Direction::Right))
+			{
+				currentFigurePosition.x += BLOCK_SIZE;
+			}
+			break;
+
+		case PieceMovement::Rotation:
+
+			pieceRotation = CheckIsPieceCanRotate();
+
+			if (pieceRotation.pieceCanRotate)
+			{
+				currentFigurePosition.x += pieceRotation.pieceShift * BLOCK_SIZE;
+				rotation = pieceRotation.nextRotation;
+			}
+			break;
+
+		case PieceMovement::SpeedUp:
+
+			if (CheckIsPieceCanMove())
+			{
+				currentFigurePosition.y += BLOCK_SIZE;
+			}
+			else
+			{
+				GoToNextPiece();
+			}
+
+			pieceMovement = PieceMovement::None;
+
+			break;
+
+		case PieceMovement::None:
+
+			if (CheckIsPieceCanMove())
+			{
+				if (currentFrame == FPS)
+				{
+					currentFigurePosition.y += BLOCK_SIZE;
+				}
+			}
+			else
+			{
+				GoToNextPiece();
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+		pieceMovement = PieceMovement::None;
+	}
+
+	void Game::InitializeGame()
+	{
+		board = InitializeBoard();
+		currentFigure = (FigureKind)(rand() % PIECE_KINDS);
+		nextFigure = (FigureKind)(rand() % PIECE_KINDS);
+		rotation = rand() % PIECE_ROTATIONS;
+		nextRotation = rand() % PIECE_ROTATIONS;
+
+		currentFigurePosition = {
+				BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
+				BOARD_POSITION_Y
+		};
+
+		score = 0;
+
+		gameState = GameState::Running;
+	}
+
+	void Game::GoToNextPiece()
+	{
+		if (currentFrame == FPS)
+		{
+			SaveCurrentPiece();
+
+			currentFigure = nextFigure;
+			nextFigure = (FigureKind)(rand() % PIECE_KINDS);
+			rotation = nextRotation;
+			nextRotation = rand() % PIECE_ROTATIONS;
+			currentFigurePosition = {
+				BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
+				BOARD_POSITION_Y
+			};
+
+			DeleteLines();
+			CheckIsGameOver();
+		}
+	}
+
 	std::vector<std::vector<int>> Game::InitializeBoard()
 	{
-		int boardHeightInBlocks = BOARD_HEIGHT / BLOCK_SIZE;
-		int boardWidthInBlocks = BOARD_WIDTH / BLOCK_SIZE;
 		std::vector<std::vector<int>> board(
-			boardHeightInBlocks, std::vector<int>(boardWidthInBlocks));
+			BOARD_HEIGHT_IN_BLOCKS, std::vector<int>(BOARD_WIDTH_IN_BLOCKS));
 
-		for (int i{}; i < boardHeightInBlocks; i++)
+		for (int i{}; i < BOARD_HEIGHT_IN_BLOCKS; i++)
 		{
-			for (int j{}; j < boardWidthInBlocks; j++)
+			for (int j{}; j < BOARD_WIDTH_IN_BLOCKS; j++)
 			{
-				if (j == 0 || i == boardHeightInBlocks - 1 || j == boardWidthInBlocks - 1)
+				if (j == 0 || i == BOARD_HEIGHT_IN_BLOCKS - 1 || j == BOARD_WIDTH_IN_BLOCKS - 1)
 				{
 					board[i][j] = 3;
 				}
@@ -637,7 +813,7 @@ namespace GameNamespace
 				{
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
-						isGameOver = true;
+						gameState = GameState::GameOver;
 					}
 				}
 			}
@@ -646,22 +822,29 @@ namespace GameNamespace
 
 	void Game::DrawScene()
 	{
-		DrawFigure(nextFigure, nextRotation, NEXT_PIECE_POSITION_X, NEXT_PIECE_POSITION_Y);
+		SDL_RenderCopy(renderer, infoBlockTexture, NULL, &INFO_BLOCK_RECT);
 
-		CreateMessage(Font::Scene, "Next piece:", MAIN_FONT_COLOR, NEXT_PIECE_MESSAGE_RECTANGLE);
-		CreateMessage(Font::Scene, "Your score:", MAIN_FONT_COLOR, YOUR_SCORE_MESSAGE_RECTANGLE);
+		int nextPieceWidth = (int)Figures[static_cast<int>(nextFigure)][nextRotation][0].size();
+		int nextPiecePositionX{ 
+			INFO_BLOCK_POSITION_X 
+			+ 
+			(INFO_BLOCK_WIDTH - BLOCK_SIZE * nextPieceWidth) / 2 };
 
-		int temp_score{ score };
+		DrawFigure(nextFigure, nextRotation, nextPiecePositionX, NEXT_PIECE_POSITION_Y);
+
+		int tempScore{ score };
 
 		for (int i{ NUMBER_OF_SCORE_DIGITS - 1 }; i >= 0; i--)
 		{
-			CreateMessage(
+			CreateMessage
+			(
 				Font::Scene, 
-				std::to_string(temp_score % 10).c_str(), 
-				SECONDARY_FONT_COLOR, 
-				SCORE_MESSAGE_RECTANGLES[i]);
+				std::to_string(tempScore % 10).c_str(), 
+				MAIN_FONT_COLOR,
+				SCORE_MESSAGE_RECTANGLES[i]
+			);
 
-			temp_score /= 10;
+			tempScore /= 10;
 		}
 	}
 
@@ -713,6 +896,9 @@ namespace GameNamespace
 
 	void Game::PrintGameOver()
 	{
+		SetColor(Color::transparentBlack);
+		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
+
 		CreateMessage(Font::GameOver, "GAME OVER!", MAIN_FONT_COLOR, GAME_OVER_MESSAGE_RECTANGLE);
 		CreateMessage(Font::Scene, "Press Enter to start again", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
 	}
@@ -723,5 +909,41 @@ namespace GameNamespace
 		{
 			score += SCORE_ADDITION;
 		}
+	}
+
+	void Game::PrintPauseGame()
+	{
+		SetColor(Color::transparentBlack);
+		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
+
+		CreateMessage(Font::GameOver, "GAME PAUSED", MAIN_FONT_COLOR, GAME_OVER_MESSAGE_RECTANGLE);
+		CreateMessage(Font::Scene, "Press Enter or Escape to resume game", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
+	}
+
+	SDL_Texture* Game::LoadTexture(const char* textureFilePath)
+	{
+		SDL_Surface* surface
+		{
+			IMG_Load(textureFilePath)
+		};
+
+		if (surface == NULL)
+		{
+			throw SurfaceNullReference();
+		}
+
+		SDL_Texture* texture
+		{ 
+			SDL_CreateTextureFromSurface(renderer, surface) 
+		};
+
+		if (texture == NULL)
+		{
+			throw TextureNullReference();
+		}
+
+		SDL_FreeSurface(surface);
+
+		return texture;
 	}
 }

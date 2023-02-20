@@ -25,6 +25,12 @@ struct SurfaceNullReference : public std::exception {
 	}
 };
 
+struct TextureNullReference : public std::exception {
+	const char* what() const throw () {
+		return "Texture null reference";
+	}
+};
+
 struct MessageNullReference : public std::exception {
 	const char* what() const throw () {
 		return "Message null reference";
@@ -40,5 +46,11 @@ struct SDLInitException : public std::exception {
 struct TTFInitException : public std::exception {
 	const char* what() const throw () {
 		return "TTF_Init failed";
+	}
+};
+
+struct SetTextureAlphaModException : public std::exception {
+	const char* what() const throw () {
+		return "SDL_SetTextureAlphaMod failed";
 	}
 };

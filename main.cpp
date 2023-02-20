@@ -14,14 +14,13 @@ int main(int argc, char* argv[])
     {
         std::unique_ptr<Game> game{ new Game() };
 
-        while (game->Running())
+        while (game->IsRunning())
         {
             frameStart = SDL_GetTicks();
 
             game->HandleEvents();
             game->Update();
             game->Render();
-            game->AddFrame();
 
             frameTime = SDL_GetTicks() - frameStart;
 
@@ -34,6 +33,7 @@ int main(int argc, char* argv[])
     catch (std::exception& exception)
     {
         std::string errorMessage{ exception.what() };
+        errorMessage.append("\n");
         errorMessage.append(SDL_GetError());
 
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", errorMessage.c_str(), NULL);
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     }
     catch (...)
     {
-        std::string errorMessage{ "Something went wrong :(" };
+        std::string errorMessage{ "Something went wrong :(\n" };
         errorMessage.append(SDL_GetError());
 
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", errorMessage.c_str(), NULL);
