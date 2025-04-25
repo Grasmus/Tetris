@@ -917,7 +917,7 @@ namespace GameNamespace
 		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
 
 		CreateMessage(Font::GameOver, "GAME PAUSED", MAIN_FONT_COLOR, GAME_OVER_MESSAGE_RECTANGLE);
-		CreateMessage(Font::Scene, "Press Enter or Escape to resume game", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
+		CreateMessage(Font::Scene, "Press Enter to resume game or Esc to exit", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
 	}
 
 	SDL_Texture* Game::LoadTexture(const char* textureFilePath)
