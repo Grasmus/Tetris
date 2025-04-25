@@ -12,7 +12,9 @@ git clone https://github.com/Grasmus/Tetris.git
 ```
 
 Open the solution in Visual Studio 2022 and go to Project->Properties.
+
 Then open Configuration Properties->C/C++->General.
+
 Click on Additional Include Directories and edit them.
 In opened window you need to add paths to SDL2, SDL2_ttf and SDL2_image include directories.
 
