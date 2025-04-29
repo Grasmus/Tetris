@@ -71,10 +71,34 @@ namespace GameNamespace
 			"Play", 
 			sceneFont, 
 			BUTTON_FONT_COLOR);
+
+		SDL_Texture* whiteTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 200, 50);
+		if (!whiteTexture) {
+			throw std::runtime_error("Failed to create white texture for TextInput.");
+		}
+
+		SDL_SetRenderTarget(renderer, whiteTexture);
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_RenderClear(renderer);
+		SDL_SetRenderTarget(renderer, nullptr);
+
+		int inputWidth = 300;
+		int inputHeight = 50;
+		int inputX = MENU_BUTTON_POINT.x + (BUTTON_WIDTH - inputWidth) / 2;
+		int inputY = MENU_BUTTON_POINT.y - inputHeight - 20;
+
+		SDL_Rect inputRect = {inputX, inputY, inputWidth, inputHeight};
+		textInput = std::make_unique<TextInput>(renderer, whiteTexture, sceneFont, inputRect);
+
+		textInputBackgroundTexture = whiteTexture;
 	}
 
 	Game::~Game()
 	{
+		if (textInputBackgroundTexture) {
+			SDL_DestroyTexture(textInputBackgroundTexture);
+		}
+
 		SDL_DestroyWindow(window);
 		SDL_DestroyRenderer(renderer);
 		SDL_Quit();
@@ -102,6 +126,7 @@ namespace GameNamespace
 
 		case GameState::MenuMode:
 			HandleMainMenuEvent(event);
+			textInput->HandleEvent(event);
 			break;
 
 		default:
@@ -137,6 +162,7 @@ namespace GameNamespace
 			break;
 
 		case GameState::MenuMode:
+			textInput->Render(renderer);
 			menuButton->RenderButton(renderer);
 			break;
 

@@ -7,6 +7,7 @@
 #include <vector>
 #include "Button.h"
 #include <memory>
+#include "TextInput.h"
 
 namespace GameNamespace
 {
@@ -31,6 +32,7 @@ namespace GameNamespace
 		SDL_Texture* backgroundTexture{};
 		SDL_Texture* boardTexture{};
 		SDL_Texture* infoBlockTexture{};
+		SDL_Texture* textInputBackgroundTexture{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
@@ -47,6 +49,7 @@ namespace GameNamespace
 			BOARD_POSITION_Y
 		};
 		std::unique_ptr<Button> menuButton{};
+		std::unique_ptr<TextInput> textInput{};
 
 		GameState gameState{ GameState::MenuMode };
 
