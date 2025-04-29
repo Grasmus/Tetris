@@ -152,6 +152,7 @@
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="TextInput.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
@@ -159,6 +160,7 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameExceptions.h" />
     <ClInclude Include="resource4.h" />
+    <ClInclude Include="TextInput.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tetris.rc" />
