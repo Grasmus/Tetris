@@ -24,6 +24,7 @@ namespace GameNamespace
 		~Button();
 		void Render(SDL_Renderer* renderer);
 		void HandleMouseLeftClick(POINT pressPoint);
+		POINT GetPostion() const;
 
 	private:
 		POINT position{};

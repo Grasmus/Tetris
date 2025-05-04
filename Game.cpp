@@ -1022,8 +1022,14 @@ namespace GameNamespace
 		int buttonRelativeWidth = RelativeWidth(PLAY_BUTTON_WIDTH);
 		int buttonRelativeHeight = RelativeHeight(PLAY_BUTTON_HEIGHT);
 
+		POINT playButtonPosition
+		{
+			(WINDOW_WIDTH - buttonRelativeWidth) / 2,
+			(WINDOW_HEIGHT - buttonRelativeHeight) / 2
+		};
+
 		menuButton = std::make_unique<Button>(
-			PLAY_BUTTON_POSITION,
+			playButtonPosition,
 			buttonRelativeWidth,
 			buttonRelativeHeight,
 			renderer,
@@ -1037,8 +1043,8 @@ namespace GameNamespace
 	{
 		int inputWidth = RelativeWidth(280);
 		int inputHeight = RelativeHeight(103);
-		int inputX = PLAY_BUTTON_POSITION.x + (PLAY_BUTTON_WIDTH - inputWidth) / 2;
-		int inputY = PLAY_BUTTON_POSITION.y - inputHeight - 20;
+		int inputX = menuButton->GetPostion().x - 10;
+		int inputY = menuButton->GetPostion().y - inputHeight - 20;
 		unsigned fontSize = RelativeFontSize(36);
 		TTF_Font* textInputFont = TTF_OpenFont(FONT_FILE_PATH, fontSize);
 
