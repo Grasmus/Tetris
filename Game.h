@@ -20,8 +20,13 @@ namespace GameNamespace
 		void HandleEvents();
 		void Render();
 		void Update();
-		bool IsRunning();
-		int GetFrameDelay();
+		bool IsRunning() const;
+		int GetFrameDelay() const;
+		
+		static void StartGame();
+		static Game* Init();
+
+		static Game *game;
 
 	private:
 		SDL_Renderer* renderer{};
@@ -65,7 +70,6 @@ namespace GameNamespace
 		void HandleGameOverEvent(SDL_Event event);
 
 		void MovePiece();
-		void InitializeGame();
 		void GoToNextPiece();
 
 		std::vector<std::vector<int>> InitializeBoard();
@@ -73,7 +77,7 @@ namespace GameNamespace
 		bool CheckIsPieceCanMove(Direction direction);
 		PieceRotation CheckIsPieceCanRotate();
 		void CheckIsGameOver();
-		int CalculateNextRotation();
+		int CalculateNextRotation() const;
 		void AddFrame();
 		void DeleteLines();
 		void DropUpperBlocks(int yIndex);
@@ -102,8 +106,18 @@ namespace GameNamespace
 
 		SDL_Color GetColor(Color color);
 
+		void OpenFonts();
+		void LoadTextures();
+
 		void CreateUI();
 
+		void CreatePlayButton();
 		void CreateTestTextInput();
+
+		void RenderMenu();
+
+		void HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY);
+		void HandleMenuTextInput(const char* text);
+		void HandleMenuKeyDown(SDL_Keycode keyCode);
 	};
 }

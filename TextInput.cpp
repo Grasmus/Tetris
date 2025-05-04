@@ -40,7 +40,7 @@ namespace GameNamespace
         SDL_DestroyTexture(texture);
     }
 
-    void TextInput::HandleMouseClick(POINT pressPoint)
+    void TextInput::HandleMouseLeftClick(POINT pressPoint)
     {
         if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w &&
             pressPoint.y >= rect.y && pressPoint.y <= rect.y + rect.h)

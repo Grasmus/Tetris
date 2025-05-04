@@ -20,7 +20,7 @@ namespace GameNamespace
             int textMaxLenght);
         ~TextInput();
 
-        void HandleMouseClick(POINT pressPoint);
+        void HandleMouseLeftClick(POINT pressPoint);
         void HandleTextInput(const char* textInput);
         void HandleKeyDown(SDL_Keycode keyCode);
         void Render(SDL_Renderer* renderer);
