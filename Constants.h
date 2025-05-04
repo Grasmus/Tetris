@@ -69,8 +69,8 @@ namespace GameNamespace
         SCORE_MAX_VALUE{ 99999 },
         MAIN_FONT_SIZE{ 24 },
         SCENE_FONT_SIZE{ 24 },
-        BUTTON_HEIGHT{ 140 },
-        BUTTON_WIDTH{ 240 },
+        PLAY_BUTTON_HEIGHT{ 140 },
+        PLAY_BUTTON_WIDTH{ 240 },
 
         TEXT_INPUT_CARRET_BLINK_MS{ 500 },
         TEXT_INPUT_CARRET_WIDTH{ 2 };
@@ -139,10 +139,10 @@ namespace GameNamespace
         BOARD_HEIGHT - 3 * BLOCK_SIZE
     };
 
-    const POINT MENU_BUTTON_POINT
+    const POINT PLAY_BUTTON_POSITION
     {
-        (WINDOW_WIDTH - BUTTON_WIDTH) / 2,
-        (WINDOW_HEIGHT - BUTTON_HEIGHT) / 2
+        (WINDOW_WIDTH - PLAY_BUTTON_WIDTH) / 2,
+        (WINDOW_HEIGHT - PLAY_BUTTON_HEIGHT) / 2
     };
 
     const std::vector<SDL_Rect> SCORE_MESSAGE_RECTANGLES

@@ -4,17 +4,19 @@ namespace GameNamespace
 {
 	Button::Button(
 		POINT position,
-		int height,
 		int width,
+		int height,
 		SDL_Renderer* renderer,
 		const char* text,
 		TTF_Font* font,
-		SDL_Color color)
+		SDL_Color color,
+		void (*function)()
+	):
+		position(position),
+		height(height),
+		width(width),
+		function(function)
 	{
-		this->position = position;
-		this->height = height;
-		this->width = width;
-
 		buttonRect = {
 			position.x,
 			position.y,
@@ -45,22 +47,20 @@ namespace GameNamespace
 		SDL_DestroyTexture(message);
 	}
 
-	void Button::RenderButton(SDL_Renderer* renderer)
+	void Button::Render(SDL_Renderer* renderer)
 	{
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 		SDL_RenderFillRect(renderer, &buttonRect);
 		SDL_RenderCopy(renderer, message, NULL, &buttonRect);
 	}
 
-	bool Button::PressButton(POINT pressPoint)
+	void Button::HandleMouseLeftClick(POINT pressPoint)
 	{
 		if (pressPoint.x >= position.x && pressPoint.x <= position.x + width
 			&&
 			pressPoint.y >= position.y && pressPoint.y <= position.y + height)
 		{
-			return true;
+			function();
 		}
-
-		return false;
 	}
 }

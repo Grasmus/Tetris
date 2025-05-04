@@ -8,6 +8,8 @@
 
 namespace GameNamespace
 {
+	Game* Game::game;
+
 	Game::Game()
 	{
 		if (SDL_Init(SDL_INIT_EVERYTHING))
@@ -41,37 +43,12 @@ namespace GameNamespace
 			throw TTFInitException();
 		}
 
-		gameOverFont = TTF_OpenFont(FONT_FILE_PATH, MAIN_FONT_SIZE);
-		sceneFont = TTF_OpenFont(FONT_FILE_PATH, SCENE_FONT_SIZE);
-
-		if (gameOverFont == NULL || sceneFont == NULL)
-		{
-			throw FontNullReference();
-		}
-
-		blockTexture = LoadTexture(BLOCK_TEXTURE_FILE_PATH);
-		backgroundTexture = LoadTexture(BACKGROUND_TEXTURE_FILE_PATH);
-		boardTexture = LoadTexture(BOARD_TEXTURE_FILE_PATH);
-		infoBlockTexture = LoadTexture(INFO_BLOCK_TEXTURE_FILE_PATH);
-		textInputTexture = LoadTexture(TEXT_INPUT_TEXTURE_FILE_PATH);
-
-		if (SDL_SetTextureAlphaMod(boardTexture, 100))
-		{
-			throw SetTextureAlphaModException();
-		}
+		OpenFonts();
+		LoadTextures();
 
 		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-		srand(time(NULL));
-
-		menuButton = std::make_unique<Button>(
-			MENU_BUTTON_POINT,
-			BUTTON_HEIGHT, 
-			BUTTON_WIDTH, 
-			renderer, 
-			"Play", 
-			sceneFont, 
-			BUTTON_FONT_COLOR);		
+		srand(time(NULL));		
 
 		CreateUI();
 	}
@@ -140,8 +117,7 @@ namespace GameNamespace
 			break;
 
 		case GameState::MenuMode:
-			menuButton->RenderButton(renderer);
-			textInput->Render(renderer);
+			RenderMenu();
 			break;
 
 		default:
@@ -168,7 +144,7 @@ namespace GameNamespace
 		AddFrame();
 	}
 
-	bool Game::IsRunning()
+	bool Game::IsRunning() const
 	{
 		return gameState != GameState::Inactive;
 	}
@@ -233,7 +209,7 @@ namespace GameNamespace
 		}
 	}
 
-	int Game::GetFrameDelay()
+	int Game::GetFrameDelay() const
 	{
 		return FRAME_DELAY;
 	}
@@ -333,15 +309,9 @@ namespace GameNamespace
 			switch (event.button.button)
 			{
 			case SDL_BUTTON_LEFT:
-
 				SDL_GetMouseState(&mouseCoordinateX, &mouseCoordinateY);
 
-				if (menuButton->PressButton({ mouseCoordinateX, mouseCoordinateY }))
-				{
-					InitializeGame();
-				}
-
-				textInput->HandleMouseClick({ mouseCoordinateX, mouseCoordinateY });
+				HandleMenuMouseLeftClick(mouseCoordinateX, mouseCoordinateY);
 
 				break;
 
@@ -351,10 +321,14 @@ namespace GameNamespace
 
 			break;
 		case SDL_TEXTINPUT:
-			textInput->HandleTextInput(event.text.text);
+			
+			HandleMenuTextInput(event.text.text);
+
 			break;
 		case SDL_KEYDOWN:
-			textInput->HandleKeyDown(event.key.keysym.sym);
+
+			HandleMenuKeyDown(event.key.keysym.sym);
+
 			break;
 		default:
 			break;
@@ -455,7 +429,7 @@ namespace GameNamespace
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_RETURN:
-				InitializeGame();
+				StartGame();
 				break;
 
 			case SDLK_ESCAPE:
@@ -543,22 +517,34 @@ namespace GameNamespace
 		pieceMovement = PieceMovement::None;
 	}
 
-	void Game::InitializeGame()
+	void Game::StartGame()
 	{
-		board = InitializeBoard();
-		currentFigure = (FigureKind)(rand() % PIECE_KINDS);
-		nextFigure = (FigureKind)(rand() % PIECE_KINDS);
-		rotation = rand() % PIECE_ROTATIONS;
-		nextRotation = rand() % PIECE_ROTATIONS;
+		game->board = game->InitializeBoard();
+		game->currentFigure = (FigureKind)(rand() % PIECE_KINDS);
+		game->nextFigure = (FigureKind)(rand() % PIECE_KINDS);
+		game->rotation = rand() % PIECE_ROTATIONS;
+		game->nextRotation = rand() % PIECE_ROTATIONS;
 
-		currentFigurePosition = {
-				BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-				BOARD_POSITION_Y
+		game->currentFigurePosition = {
+			BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
+			BOARD_POSITION_Y
 		};
 
-		score = 0;
+		game->score = 0;
 
-		gameState = GameState::Running;
+		game->gameState = GameState::Running;
+	}
+
+	Game* Game::Init()
+	{
+		if (!game)
+		{
+			game = new Game();
+
+			return game;
+		}
+
+		throw GameAlreadyCreatedException();
 	}
 
 	void Game::GoToNextPiece()
@@ -720,7 +706,7 @@ namespace GameNamespace
 		return pieceRotaion;
 	}
 
-	int Game::CalculateNextRotation()
+	int Game::CalculateNextRotation() const
 	{
 		if (rotation < PIECE_ROTATIONS - 1)
 		{
@@ -1000,17 +986,59 @@ namespace GameNamespace
 		}
 	}
 
+	void Game::OpenFonts()
+	{
+		gameOverFont = TTF_OpenFont(FONT_FILE_PATH, MAIN_FONT_SIZE);
+		sceneFont = TTF_OpenFont(FONT_FILE_PATH, SCENE_FONT_SIZE);
+
+		if (gameOverFont == NULL || sceneFont == NULL)
+		{
+			throw FontNullReference();
+		}
+	}
+
+	void Game::LoadTextures()
+	{
+		blockTexture = LoadTexture(BLOCK_TEXTURE_FILE_PATH);
+		backgroundTexture = LoadTexture(BACKGROUND_TEXTURE_FILE_PATH);
+		boardTexture = LoadTexture(BOARD_TEXTURE_FILE_PATH);
+		infoBlockTexture = LoadTexture(INFO_BLOCK_TEXTURE_FILE_PATH);
+		textInputTexture = LoadTexture(TEXT_INPUT_TEXTURE_FILE_PATH);
+
+		if (SDL_SetTextureAlphaMod(boardTexture, 100))
+		{
+			throw SetTextureAlphaModException();
+		}
+	}
+
 	void Game::CreateUI()
 	{
+		CreatePlayButton();
 		CreateTestTextInput();
+	}
+
+	void Game::CreatePlayButton()
+	{
+		int buttonRelativeWidth = RelativeWidth(PLAY_BUTTON_WIDTH);
+		int buttonRelativeHeight = RelativeHeight(PLAY_BUTTON_HEIGHT);
+
+		menuButton = std::make_unique<Button>(
+			PLAY_BUTTON_POSITION,
+			buttonRelativeWidth,
+			buttonRelativeHeight,
+			renderer,
+			"Play",
+			sceneFont,
+			BUTTON_FONT_COLOR,
+			StartGame);
 	}
 
 	void Game::CreateTestTextInput()
 	{
 		int inputWidth = RelativeWidth(280);
 		int inputHeight = RelativeHeight(103);
-		int inputX = MENU_BUTTON_POINT.x + (BUTTON_WIDTH - inputWidth) / 2;
-		int inputY = MENU_BUTTON_POINT.y - inputHeight - 20;
+		int inputX = PLAY_BUTTON_POSITION.x + (PLAY_BUTTON_WIDTH - inputWidth) / 2;
+		int inputY = PLAY_BUTTON_POSITION.y - inputHeight - 20;
 		unsigned fontSize = RelativeFontSize(36);
 		TTF_Font* textInputFont = TTF_OpenFont(FONT_FILE_PATH, fontSize);
 
@@ -1019,5 +1047,27 @@ namespace GameNamespace
 		SDL_Color careteColor{ GetColor(Color::black) };
 
 		textInput = std::make_unique<TextInput>(renderer, textInputTexture, textInputFont, inputRect, textColor, careteColor);
+	}
+
+	void Game::RenderMenu()
+	{
+		menuButton->Render(renderer);
+		textInput->Render(renderer);
+	}
+
+	void Game::HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY)
+	{
+		menuButton->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+		textInput->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+	}
+
+	void Game::HandleMenuTextInput(const char* text)
+	{
+		textInput->HandleTextInput(text);
+	}
+
+	void Game::HandleMenuKeyDown(SDL_Keycode keyCode)
+	{
+		textInput->HandleKeyDown(keyCode);
 	}
 }

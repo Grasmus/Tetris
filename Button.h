@@ -12,16 +12,18 @@ namespace GameNamespace
 	public:
 		Button(
 			POINT point,
-			int height,
 			int width,
+			int height,
 			SDL_Renderer* renderer,
 			const char* text,
 			TTF_Font* font,
-			SDL_Color color);
+			SDL_Color color,
+			void (*function)()
+		);
 
 		~Button();
-		void RenderButton(SDL_Renderer* renderer);
-		bool PressButton(POINT pressPoint);
+		void Render(SDL_Renderer* renderer);
+		void HandleMouseLeftClick(POINT pressPoint);
 
 	private:
 		POINT position{};

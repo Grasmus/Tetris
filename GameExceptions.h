@@ -1,6 +1,12 @@
 #pragma once
 #include <exception>
 
+struct GameAlreadyCreatedException : public std::exception {
+	const char* what() const throw () {
+		return "Object Game already exists!";
+	}
+};
+
 struct WindowCreationException : public std::exception {
 	const char* what() const throw () {
 		return "Window hasn`t been created";
