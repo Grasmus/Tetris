@@ -33,6 +33,7 @@ namespace GameNamespace
 		SDL_Texture* boardTexture{};
 		SDL_Texture* infoBlockTexture{};
 		SDL_Texture* textInputBackgroundTexture{};
+		SDL_Texture* textInputTexture{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
@@ -94,5 +95,15 @@ namespace GameNamespace
 		void AddScore();
 		void PrintPauseGame();
 		SDL_Texture* LoadTexture(const char* textureFilePath);
+
+		unsigned RelativeWidth(unsigned width);
+		unsigned RelativeHeight(unsigned height);
+		unsigned RelativeFontSize(unsigned fontSize);
+
+		SDL_Color GetColor(Color color);
+
+		void CreateUI();
+
+		void CreateTestTextInput();
 	};
 }

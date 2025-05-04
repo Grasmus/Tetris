@@ -53,6 +53,7 @@ namespace GameNamespace
 		backgroundTexture = LoadTexture(BACKGROUND_TEXTURE_FILE_PATH);
 		boardTexture = LoadTexture(BOARD_TEXTURE_FILE_PATH);
 		infoBlockTexture = LoadTexture(INFO_BLOCK_TEXTURE_FILE_PATH);
+		textInputTexture = LoadTexture(TEXT_INPUT_TEXTURE_FILE_PATH);
 
 		if (SDL_SetTextureAlphaMod(boardTexture, 100))
 		{
@@ -70,35 +71,13 @@ namespace GameNamespace
 			renderer, 
 			"Play", 
 			sceneFont, 
-			BUTTON_FONT_COLOR);
+			BUTTON_FONT_COLOR);		
 
-		SDL_Texture* whiteTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 200, 50);
-		if (!whiteTexture) {
-			throw std::runtime_error("Failed to create white texture for TextInput.");
-		}
-
-		SDL_SetRenderTarget(renderer, whiteTexture);
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		SDL_RenderClear(renderer);
-		SDL_SetRenderTarget(renderer, nullptr);
-
-		int inputWidth = 300;
-		int inputHeight = 50;
-		int inputX = MENU_BUTTON_POINT.x + (BUTTON_WIDTH - inputWidth) / 2;
-		int inputY = MENU_BUTTON_POINT.y - inputHeight - 20;
-
-		SDL_Rect inputRect = {inputX, inputY, inputWidth, inputHeight};
-		textInput = std::make_unique<TextInput>(renderer, whiteTexture, sceneFont, inputRect);
-
-		textInputBackgroundTexture = whiteTexture;
+		CreateUI();
 	}
 
 	Game::~Game()
 	{
-		if (textInputBackgroundTexture) {
-			SDL_DestroyTexture(textInputBackgroundTexture);
-		}
-
 		SDL_DestroyWindow(window);
 		SDL_DestroyRenderer(renderer);
 		SDL_Quit();
@@ -126,7 +105,6 @@ namespace GameNamespace
 
 		case GameState::MenuMode:
 			HandleMainMenuEvent(event);
-			textInput->HandleEvent(event);
 			break;
 
 		default:
@@ -162,8 +140,8 @@ namespace GameNamespace
 			break;
 
 		case GameState::MenuMode:
-			textInput->Render(renderer);
 			menuButton->RenderButton(renderer);
+			textInput->Render(renderer);
 			break;
 
 		default:
@@ -352,7 +330,6 @@ namespace GameNamespace
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:
-
 			switch (event.button.button)
 			{
 			case SDL_BUTTON_LEFT:
@@ -363,6 +340,9 @@ namespace GameNamespace
 				{
 					InitializeGame();
 				}
+
+				textInput->HandleMouseClick({ mouseCoordinateX, mouseCoordinateY });
+
 				break;
 
 			default:
@@ -370,7 +350,12 @@ namespace GameNamespace
 			}
 
 			break;
-
+		case SDL_TEXTINPUT:
+			textInput->HandleTextInput(event.text.text);
+			break;
+		case SDL_KEYDOWN:
+			textInput->HandleKeyDown(event.key.keysym.sym);
+			break;
 		default:
 			break;
 		}
@@ -971,5 +956,68 @@ namespace GameNamespace
 		SDL_FreeSurface(surface);
 
 		return texture;
+	}
+
+	unsigned Game::RelativeWidth(unsigned width)
+	{
+		return width * WINDOW_WIDTH / DEFAULT_WINDOW_WIDTH;
+	}
+
+	unsigned Game::RelativeHeight(unsigned height)
+	{
+		return height * WINDOW_HEIGHT / DEFAULT_WINDOW_HEIGHT;
+	}
+
+	unsigned Game::RelativeFontSize(unsigned fontSize)
+	{
+		return RelativeHeight(fontSize);
+	}
+
+	SDL_Color Game::GetColor(Color color)
+	{
+		switch (color)
+		{
+		case Color::red:
+			return SDL_Color{ 255, 0, 0, 255 };
+
+		case Color::green:
+			return SDL_Color{ 0, 255, 0, 255 };
+
+		case Color::black:
+			return SDL_Color{ 0, 0, 0, 255 };
+
+		case Color::blue:
+			return SDL_Color{ 0, 0, 255, 255 };
+
+		case Color::white:
+			return SDL_Color{ 255, 255, 255, 255 };
+
+		case Color::transparentBlack:
+			return SDL_Color{ 0, 0, 0, 150 };
+
+		default:
+			return SDL_Color{ 255, 255, 255, 255 };
+		}
+	}
+
+	void Game::CreateUI()
+	{
+		CreateTestTextInput();
+	}
+
+	void Game::CreateTestTextInput()
+	{
+		int inputWidth = RelativeWidth(280);
+		int inputHeight = RelativeHeight(103);
+		int inputX = MENU_BUTTON_POINT.x + (BUTTON_WIDTH - inputWidth) / 2;
+		int inputY = MENU_BUTTON_POINT.y - inputHeight - 20;
+		unsigned fontSize = RelativeFontSize(36);
+		TTF_Font* textInputFont = TTF_OpenFont(FONT_FILE_PATH, fontSize);
+
+		SDL_Rect inputRect = { inputX, inputY, inputWidth, inputHeight };
+		SDL_Color textColor{ GetColor(Color::red) };
+		SDL_Color careteColor{ GetColor(Color::black) };
+
+		textInput = std::make_unique<TextInput>(renderer, textInputTexture, textInputFont, inputRect, textColor, careteColor);
 	}
 }

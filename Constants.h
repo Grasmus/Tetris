@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL_ttf.h>
 #include <vector>
+#include <wtypes.h>
 
 namespace GameNamespace
 {
@@ -8,8 +9,11 @@ namespace GameNamespace
     typedef std::vector<std::vector<int>> Figure;
 
     const int
-        WINDOW_WIDTH{ 1920 },
-        WINDOW_HEIGHT{ 1080 },
+        DEFAULT_WINDOW_WIDTH{ 1920 },
+        DEFAULT_WINDOW_HEIGHT{ 1080 },
+
+        WINDOW_WIDTH{ DEFAULT_WINDOW_WIDTH },
+        WINDOW_HEIGHT{ DEFAULT_WINDOW_HEIGHT },
 
         BLOCK_SIZE{ WINDOW_WIDTH / 48 },
 
@@ -66,7 +70,20 @@ namespace GameNamespace
         MAIN_FONT_SIZE{ 24 },
         SCENE_FONT_SIZE{ 24 },
         BUTTON_HEIGHT{ 140 },
-        BUTTON_WIDTH{ 240 };
+        BUTTON_WIDTH{ 240 },
+
+        TEXT_INPUT_CARRET_BLINK_MS{ 500 },
+        TEXT_INPUT_CARRET_WIDTH{ 2 };
+
+    const float
+        TEXT_INPUT_RECT_OFFSET_COEF{ 0.1 },
+        TEXT_INPUT_HEIGHT_ELEVATION{ 0.25 },
+        TEXT_INPUT_ELEVATION_COEF{ 1 - TEXT_INPUT_HEIGHT_ELEVATION },
+        TEXT_INPUT_CLIP_RECT_X_OFFSET{ 0.1 },
+        TEXT_INPUT_CLIP_RECT_WIDTH_OFFSET{ 0.2 },
+        TEXT_INPUT_CARRET_RECT_Y_OFFSET{ 0.15 },
+        TEXT_INPUT_CARRET_RECT_HEIGHT_COEF{ 0.3 },
+        TEXT_INPUT_CARRET_INIT_OFFSET_COEF{ 0.1 };
 
     const char* const GAME_WINDOW_NAME{ "Tetris" };
     
@@ -76,6 +93,7 @@ namespace GameNamespace
     const char* const BACKGROUND_TEXTURE_FILE_PATH{ "./Textures/background_image.jpg" };
     const char* const BOARD_TEXTURE_FILE_PATH{ "./Textures/board_texture.png" };
     const char* const INFO_BLOCK_TEXTURE_FILE_PATH{ "./Textures/info_block_texture.png" };
+    const char* const TEXT_INPUT_TEXTURE_FILE_PATH{ "./Textures/text_input_texture.png" };
 
     const SDL_Color
         BUTTON_FONT_COLOR{ 255, 0, 0 },
