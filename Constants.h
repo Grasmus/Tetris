@@ -139,12 +139,6 @@ namespace GameNamespace
         BOARD_HEIGHT - 3 * BLOCK_SIZE
     };
 
-    const POINT PLAY_BUTTON_POSITION
-    {
-        (WINDOW_WIDTH - PLAY_BUTTON_WIDTH) / 2,
-        (WINDOW_HEIGHT - PLAY_BUTTON_HEIGHT) / 2
-    };
-
     const std::vector<SDL_Rect> SCORE_MESSAGE_RECTANGLES
     {
         {

@@ -63,4 +63,9 @@ namespace GameNamespace
 			function();
 		}
 	}
+
+	POINT Button::GetPostion() const
+	{
+		return position;
+	}
 }
