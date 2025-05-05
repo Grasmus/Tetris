@@ -16,7 +16,8 @@ namespace GameNamespace
             TTF_Font* font,
             SDL_Rect rect,
             SDL_Color textColor,
-            SDL_Color caretColor);
+            SDL_Color caretColor,
+            int textMaxLenght);
         ~TextInput();
 
         void HandleMouseClick(POINT pressPoint);
@@ -35,8 +36,9 @@ namespace GameNamespace
         bool isActive{};
         int caretPosition{};
         Uint32 lastBlinkTime{};
-        bool caretVisible{};
+        bool caretVisible{ true };
         int scrollOffset{};
+        int textMaxLength{};
 
         void RenderCaret(SDL_Renderer* renderer);
         void ScrollTextIfNeeded();

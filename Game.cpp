@@ -1013,11 +1013,20 @@ namespace GameNamespace
 		int inputY = MENU_BUTTON_POINT.y - inputHeight - 20;
 		unsigned fontSize = RelativeFontSize(36);
 		TTF_Font* textInputFont = TTF_OpenFont(FONT_FILE_PATH, fontSize);
+		int textMaxLength{ 16 };
 
 		SDL_Rect inputRect = { inputX, inputY, inputWidth, inputHeight };
 		SDL_Color textColor{ GetColor(Color::red) };
 		SDL_Color careteColor{ GetColor(Color::black) };
 
-		textInput = std::make_unique<TextInput>(renderer, textInputTexture, textInputFont, inputRect, textColor, careteColor);
+		textInput = std::make_unique<TextInput>(
+			renderer, 
+			textInputTexture, 
+			textInputFont, 
+			inputRect, 
+			textColor, 
+			careteColor, 
+			textMaxLength
+		);
 	}
 }

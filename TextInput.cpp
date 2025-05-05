@@ -8,16 +8,13 @@ namespace GameNamespace
         TTF_Font* font,
         SDL_Rect rect,
         SDL_Color textColor,
-        SDL_Color caretColor
+        SDL_Color caretColor,
+        int textMaxLength
     ): 
         rect(rect),
-        isActive(false),
         textColor(textColor),
-        caretPosition(0),
         caretColor(caretColor),
-        lastBlinkTime(0),
-        caretVisible(true),
-        scrollOffset(0)
+        textMaxLength(textMaxLength)
     {
         if (texture == NULL)
         {
@@ -62,11 +59,11 @@ namespace GameNamespace
 
     void TextInput::HandleTextInput(const char* textInput)
     {
-        if (isActive)
+        if (isActive && text.length() < textMaxLength)
         {
             for (char c : std::string(textInput))
             {
-                if (IsValidCharacter(c))
+                if (IsValidCharacter(c) && text.length() < textMaxLength)
                 {
                     text.insert(caretPosition++, 1, c);
 
