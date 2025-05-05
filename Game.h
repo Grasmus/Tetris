@@ -55,7 +55,6 @@ namespace GameNamespace
 			BOARD_POSITION_Y
 		};
 		std::unique_ptr<Button> menuButton{};
-		std::unique_ptr<TextInput> textInput{};
 
 		GameState gameState{ GameState::MenuMode };
 
@@ -112,7 +111,6 @@ namespace GameNamespace
 		void CreateUI();
 
 		void CreatePlayButton();
-		void CreateTestTextInput();
 
 		void RenderMenu();
 

@@ -1014,7 +1014,6 @@ namespace GameNamespace
 	void Game::CreateUI()
 	{
 		CreatePlayButton();
-		CreateTestTextInput();
 	}
 
 	void Game::CreatePlayButton()
@@ -1039,50 +1038,21 @@ namespace GameNamespace
 			StartGame);
 	}
 
-	void Game::CreateTestTextInput()
-	{
-		int inputWidth = RelativeWidth(280);
-		int inputHeight = RelativeHeight(103);
-		int inputX = menuButton->GetPostion().x - 10;
-		int inputY = menuButton->GetPostion().y - inputHeight - 20;
-		unsigned fontSize = RelativeFontSize(36);
-		TTF_Font* textInputFont = TTF_OpenFont(FONT_FILE_PATH, fontSize);
-		int textMaxLength{ 16 };
-
-		SDL_Rect inputRect = { inputX, inputY, inputWidth, inputHeight };
-		SDL_Color textColor{ GetColor(Color::red) };
-		SDL_Color careteColor{ GetColor(Color::black) };
-
-		textInput = std::make_unique<TextInput>(
-			renderer, 
-			textInputTexture, 
-			textInputFont, 
-			inputRect, 
-			textColor, 
-			careteColor, 
-			textMaxLength
-		);
-	}
-
 	void Game::RenderMenu()
 	{
 		menuButton->Render(renderer);
-		textInput->Render(renderer);
 	}
 
 	void Game::HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY)
 	{
 		menuButton->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
-		textInput->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
 	}
 
 	void Game::HandleMenuTextInput(const char* text)
 	{
-		textInput->HandleTextInput(text);
 	}
 
 	void Game::HandleMenuKeyDown(SDL_Keycode keyCode)
 	{
-		textInput->HandleKeyDown(keyCode);
 	}
 }
