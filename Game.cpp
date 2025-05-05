@@ -1085,4 +1085,26 @@ namespace GameNamespace
 	{
 		textInput->HandleKeyDown(keyCode);
 	}
+
+	void Game::RenderMenu()
+	{
+		menuButton->Render(renderer);
+		textInput->Render(renderer);
+	}
+
+	void Game::HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY)
+	{
+		menuButton->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+		textInput->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+	}
+
+	void Game::HandleMenuTextInput(const char* text)
+	{
+		textInput->HandleTextInput(text);
+	}
+
+	void Game::HandleMenuKeyDown(SDL_Keycode keyCode)
+	{
+		textInput->HandleKeyDown(keyCode);
+	}
 }
