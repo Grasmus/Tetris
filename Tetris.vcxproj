@@ -152,8 +152,13 @@
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameExceptions.h" />
+    <ClInclude Include="Layout.h" />
     <ClInclude Include="resource4.h" />
+    <ClInclude Include="ResourceHandler.h" />
+    <ClInclude Include="Resources.h" />
+    <ClInclude Include="Strings.h" />
     <ClInclude Include="TextInput.h" />
+    <ClInclude Include="UIElement.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tetris.rc" />
