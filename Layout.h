@@ -1,0 +1,72 @@
+#pragma once
+
+#include "Constants.h"
+
+namespace GameNamespace
+{
+    const int
+        DEFAULT_WINDOW_WIDTH{ 1920 },
+        DEFAULT_WINDOW_HEIGHT{ 1080 },
+
+        WINDOW_WIDTH{ DEFAULT_WINDOW_WIDTH },
+        WINDOW_HEIGHT{ DEFAULT_WINDOW_HEIGHT },
+
+        BLOCK_SIZE{ WINDOW_WIDTH / 48 },
+
+        PIECE_INITIAL_SHIFT_X{ BLOCK_SIZE * 4 },
+
+        BOARD_WIDTH_IN_BLOCKS{ 11 },
+        BOARD_HEIGHT_IN_BLOCKS{ 23 },
+
+        BOARD_WIDTH{ BOARD_WIDTH_IN_BLOCKS * BLOCK_SIZE },
+        BOARD_HEIGHT{ BOARD_HEIGHT_IN_BLOCKS * BLOCK_SIZE },
+
+        BOARD_POSITION_X{ (WINDOW_WIDTH - BOARD_WIDTH) / 2 },
+        BOARD_POSITION_Y{ (WINDOW_HEIGHT - BOARD_HEIGHT) / 2 },
+
+        NUMBER_OF_SCORE_DIGITS{ 5 },
+
+        INFO_BLOCK_POSITION_X{ BOARD_POSITION_X + BOARD_WIDTH },
+        INFO_BLOCK_POSITION_Y{ BOARD_POSITION_Y + 2 * BLOCK_SIZE },
+
+        INFO_BLOCK_WIDTH{ 7 * BLOCK_SIZE },
+        INFO_BLOCK_HEIGHT{ 13 * BLOCK_SIZE },
+
+        SCORE_Y_OFFSET{ 11 * INFO_BLOCK_HEIGHT / 60 },
+
+        NEXT_PIECE_POSITION_Y{ INFO_BLOCK_POSITION_Y + 8 * BLOCK_SIZE },
+
+        BACKGROUND_RECT_WIDTH{ WINDOW_WIDTH },
+        BACKGROUND_RECT_HEIGHT
+        {
+            10 * BLOCK_SIZE
+        };
+
+    const Color 
+        MAIN_FONT_COLOR{ Color::Red },
+        PLAY_BUTON_FONT_COLOR{ Color::Red };
+
+    const SDL_Rect BACKGROUND_RECTANGLE
+    {
+        0,
+        (WINDOW_HEIGHT - BACKGROUND_RECT_HEIGHT) / 2,
+        BACKGROUND_RECT_WIDTH,
+        BACKGROUND_RECT_HEIGHT
+    };
+
+    const SDL_Rect INFO_BLOCK_RECT
+    {
+        INFO_BLOCK_POSITION_X,
+        INFO_BLOCK_POSITION_Y,
+        INFO_BLOCK_WIDTH,
+        INFO_BLOCK_HEIGHT
+    };
+
+    const SDL_Rect BOARD_RECT
+    {
+        BOARD_POSITION_X + BLOCK_SIZE,
+        BOARD_POSITION_Y + 2 * BLOCK_SIZE,
+        BOARD_WIDTH - 2 * BLOCK_SIZE,
+        BOARD_HEIGHT - 3 * BLOCK_SIZE
+    };
+}

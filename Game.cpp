@@ -1,16 +1,10 @@
 #include "Game.h"
-#include "GameExceptions.h"
-#include <time.h>
-#include <stdio.h>
-#include <iostream>
-#include <string>
-#include <SDL_image.h>
 
 namespace GameNamespace
 {
 	Game* Game::game;
 
-	Game::Game()
+	Game::Game(): resourceHandler(new ResourceHandler())
 	{
 		if (SDL_Init(SDL_INIT_EVERYTHING))
 		{
@@ -43,8 +37,13 @@ namespace GameNamespace
 			throw TTFInitException();
 		}
 
-		OpenFonts();
-		LoadTextures();
+		resourceHandler->LoadFonts(renderer);
+		resourceHandler->LoadTextures(renderer);
+
+		if (SDL_SetTextureAlphaMod(resourceHandler->GetTexture(Texture::Board), 100))
+		{
+			throw SetTextureAlphaModException();
+		}
 
 		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
@@ -55,6 +54,10 @@ namespace GameNamespace
 
 	Game::~Game()
 	{
+		resourceHandler.reset();
+
+		TTF_Quit();
+
 		SDL_DestroyWindow(window);
 		SDL_DestroyRenderer(renderer);
 		SDL_Quit();
@@ -92,7 +95,7 @@ namespace GameNamespace
 	void Game::Render()
 	{
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Backgroun), NULL, NULL);
 
 		switch (gameState)
 		{
@@ -149,12 +152,12 @@ namespace GameNamespace
 		return gameState != GameState::Inactive;
 	}
 
-	void Game::DrawBlock(POINT point, Color color)
+	void Game::DrawBlock(SDL_Point position, Color color)
 	{
 		SDL_Rect rect
 		{
-			point.x,
-			point.y,
+			position.x,
+			position.y,
 			BLOCK_SIZE,
 			BLOCK_SIZE
 		};
@@ -163,12 +166,12 @@ namespace GameNamespace
 		SDL_RenderFillRect(renderer, &rect);
 	}
 
-	void Game::DrawBlock(POINT point, SDL_Texture* texture)
+	void Game::DrawBlock(SDL_Point position, SDL_Texture* texture)
 	{
 		SDL_Rect rect
 		{
-			point.x,
-			point.y,
+			position.x,
+			position.y,
 			BLOCK_SIZE,
 			BLOCK_SIZE
 		};
@@ -180,27 +183,27 @@ namespace GameNamespace
 	{
 		switch (color)
 		{
-		case Color::red:
+		case Color::Red:
 			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 			break;
 
-		case Color::green:
+		case Color::Green:
 			SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 			break;
 
-		case Color::black:
+		case Color::Black:
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 			break;
 
-		case Color::blue:
+		case Color::Blue:
 			SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
 			break;
 
-		case Color::white:
+		case Color::White:
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 			break;
 
-		case Color::transparentBlack:
+		case Color::TransparentBlack:
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
 			break;
 
@@ -217,7 +220,7 @@ namespace GameNamespace
 	void Game::DrawFigure()
 	{
 		int primalPosition{ currentFigurePosition.x };
-		POINT piecePosition{ currentFigurePosition };
+		SDL_Point piecePosition{ currentFigurePosition };
 
 		for (size_t i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
@@ -229,7 +232,7 @@ namespace GameNamespace
 				}
 				else
 				{
-					DrawBlock(piecePosition, blockTexture);
+					DrawBlock(piecePosition, resourceHandler->GetTexture(Texture::Block));
 					piecePosition.x += BLOCK_SIZE;
 				}
 			}
@@ -242,7 +245,7 @@ namespace GameNamespace
 	void Game::DrawFigure(FigureKind figure, size_t rotation, int x, int y)
 	{
 		int primalXPosition{ x };
-		POINT piecePosition{ x, y };
+		SDL_Point piecePosition{ x, y };
 
 		for (size_t i{}; i < Figures[static_cast<int>(figure)][rotation].size(); i++)
 		{
@@ -254,7 +257,7 @@ namespace GameNamespace
 				}
 				else
 				{
-					DrawBlock(piecePosition, blockTexture);
+					DrawBlock(piecePosition, resourceHandler->GetTexture(Texture::Block));
 					piecePosition.x += BLOCK_SIZE;
 				}
 			}
@@ -266,9 +269,9 @@ namespace GameNamespace
 
 	void Game::DrawBoard()
 	{
-		SDL_RenderCopy(renderer, boardTexture, NULL, &BOARD_RECT);
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Board), NULL, &BOARD_RECT);
 		int primalXPosition{ boardPosition.x };
-		POINT blockPosition{ boardPosition };
+		SDL_Point blockPosition{ boardPosition };
 
 		for (int i{}; i < BOARD_HEIGHT_IN_BLOCKS; i++)
 		{
@@ -280,7 +283,7 @@ namespace GameNamespace
 					break;
 
 				case 2:
-					DrawBlock(blockPosition, blockTexture);
+					DrawBlock(blockPosition, resourceHandler->GetTexture(Texture::Block));
 					break;
 
 				default:
@@ -819,7 +822,7 @@ namespace GameNamespace
 
 	void Game::DrawScene()
 	{
-		SDL_RenderCopy(renderer, infoBlockTexture, NULL, &INFO_BLOCK_RECT);
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::InfoBlock), NULL, &INFO_BLOCK_RECT);
 
 		int nextPieceWidth = (int)Figures[static_cast<int>(nextFigure)][nextRotation][0].size();
 		int nextPiecePositionX{ 
@@ -829,32 +832,46 @@ namespace GameNamespace
 
 		DrawFigure(nextFigure, nextRotation, nextPiecePositionX, NEXT_PIECE_POSITION_Y);
 
-		int tempScore{ score };
+		std::string scoreStr{ std::to_string(score) };
 
-		for (int i{ NUMBER_OF_SCORE_DIGITS - 1 }; i >= 0; i--)
+		scoreStr.insert(0, NUMBER_OF_SCORE_DIGITS - scoreStr.length(), '0');
+
+		const char* scoreCStr{ scoreStr.c_str() };
+
+		SDL_Rect scoreDimensions
 		{
-			CreateMessage
-			(
-				Font::Scene, 
-				std::to_string(tempScore % 10).c_str(), 
-				MAIN_FONT_COLOR,
-				SCORE_MESSAGE_RECTANGLES[i]
-			);
+			CalcTextDimensions(Font::Score, scoreCStr)
+		};
 
-			tempScore /= 10;
-		}
+		SDL_Point scorePosition
+		{
+			INFO_BLOCK_POSITION_X + (INFO_BLOCK_WIDTH - scoreDimensions.w) / 2,
+			INFO_BLOCK_POSITION_Y + SCORE_Y_OFFSET
+		};
+
+		CreateMessage(
+			Font::Score,
+			scoreCStr,
+			MAIN_FONT_COLOR,
+			scoreDimensions.w,
+			scoreDimensions.h,
+			scorePosition
+		);
 	}
 
 	void Game::CreateMessage(
-		Font fontKind,
+		Font fontType,
 		const char* text, 
-		SDL_Color color, 
-		SDL_Rect messageRectangle)
+		Color color, 
+		int width, 
+		int height, 
+		SDL_Point position)
 	{
-		TTF_Font* font = GetFont(fontKind);
+		TTF_Font* font = resourceHandler->GetFont(fontType);
 
-		SDL_Surface* surface{
-			TTF_RenderText_Solid(font, text, color) 
+		SDL_Surface* surface
+		{
+			TTF_RenderText_Solid(font, text, GetColor(color)) 
 		};
 
 		if (surface == NULL)
@@ -862,7 +879,8 @@ namespace GameNamespace
 			throw SurfaceNullReference();
 		}
 
-		SDL_Texture* message{
+		SDL_Texture* message
+		{
 			SDL_CreateTextureFromSurface(renderer, surface)
 		};
 
@@ -871,33 +889,65 @@ namespace GameNamespace
 			throw MessageNullReference();
 		}
 
-		SDL_RenderCopy(renderer, message, NULL, &messageRectangle);
+		SDL_Rect messageRect
+		{
+			position.x,
+			position.y,
+			width,
+			height
+		};
+
+		SDL_RenderCopy(renderer, message, NULL, &messageRect);
 		SDL_FreeSurface(surface);
 		SDL_DestroyTexture(message);
 	}
 
-	TTF_Font* Game::GetFont(Font font)
-	{
-		switch (font)
-		{
-		case Font::GameOver:
-			return gameOverFont;
-
-		case Font::Scene:
-			return sceneFont;
-
-		default: 
-			return sceneFont;
-		}
-	}
-
 	void Game::PrintGameOver()
 	{
-		SetColor(Color::transparentBlack);
+		SetColor(Color::TransparentBlack);
 		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
 
-		CreateMessage(Font::GameOver, "GAME OVER!", MAIN_FONT_COLOR, GAME_OVER_MESSAGE_RECTANGLE);
-		CreateMessage(Font::Scene, "Press Enter to start again", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
+		SDL_Rect gameOverDimensions
+		{
+			CalcTextDimensions(Font::Main, GAME_OVER_MESSAGE)
+		};
+
+		SDL_Point gameOverMessagePosition
+		{
+			(WINDOW_WIDTH - gameOverDimensions.w) / 2,
+			(WINDOW_HEIGHT - gameOverDimensions.h) / 2 - BLOCK_SIZE / 2
+		};
+
+		SDL_Rect startAgainDimensions
+		{
+			CalcTextDimensions(Font::Scene, START_AGAIN_MESSAGE)
+		};
+
+		SDL_Point startAgainMessagePosition
+		{
+			(WINDOW_WIDTH - startAgainDimensions.w) / 2,
+			(WINDOW_HEIGHT - startAgainDimensions.h) / 2 
+			+ 
+			(gameOverDimensions.h + BLOCK_SIZE) / 2
+		};
+
+		CreateMessage(
+			Font::Main, 
+			GAME_OVER_MESSAGE, 
+			MAIN_FONT_COLOR, 
+			gameOverDimensions.w,
+			gameOverDimensions.h,
+			gameOverMessagePosition
+		);
+
+		CreateMessage(
+			Font::Scene, 
+			START_AGAIN_MESSAGE, 
+			MAIN_FONT_COLOR,
+			startAgainDimensions.w,
+			startAgainDimensions.h,
+			startAgainMessagePosition
+		);
 	}
 
 	void Game::AddScore()
@@ -910,11 +960,50 @@ namespace GameNamespace
 
 	void Game::PrintPauseGame()
 	{
-		SetColor(Color::transparentBlack);
+		SetColor(Color::TransparentBlack);
 		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
 
-		CreateMessage(Font::GameOver, "GAME PAUSED", MAIN_FONT_COLOR, GAME_OVER_MESSAGE_RECTANGLE);
-		CreateMessage(Font::Scene, "Press Enter to resume game or Esc to exit", MAIN_FONT_COLOR, START_AGAIN_MESSAGE_RECTANGLE);
+		SDL_Rect gamePausedDimensions
+		{
+			CalcTextDimensions(Font::Main, GAME_PUSED_HEADER)
+		};
+
+		SDL_Point gamePauseHeaderPosition
+		{
+			(WINDOW_WIDTH - gamePausedDimensions.w) / 2,
+			(WINDOW_HEIGHT - gamePausedDimensions.h) / 2 - BLOCK_SIZE / 2
+		};
+
+		SDL_Rect gamePausedMessageDimensions
+		{
+			CalcTextDimensions(Font::Scene, GAME_PUSED_MESSAGE)
+		};
+
+		SDL_Point gamePauseMessagePosition
+		{
+			(WINDOW_WIDTH - gamePausedMessageDimensions.w) / 2,
+			(WINDOW_HEIGHT - gamePausedMessageDimensions.h) / 2 
+			+ 
+			(gamePausedDimensions.h + BLOCK_SIZE) / 2
+		};
+
+		CreateMessage(
+			Font::Main, 
+			GAME_PUSED_HEADER, 
+			MAIN_FONT_COLOR, 
+			gamePausedDimensions.w,
+			gamePausedDimensions.h,
+			gamePauseHeaderPosition
+		);
+
+		CreateMessage(
+			Font::Scene, 
+			GAME_PUSED_MESSAGE,
+			MAIN_FONT_COLOR, 
+			gamePausedMessageDimensions.w,
+			gamePausedMessageDimensions.h,
+			gamePauseMessagePosition
+		);
 	}
 
 	SDL_Texture* Game::LoadTexture(const char* textureFilePath)
@@ -944,41 +1033,36 @@ namespace GameNamespace
 		return texture;
 	}
 
-	unsigned Game::RelativeWidth(unsigned width)
+	unsigned Game::CalcRelativeWidth(unsigned width)
 	{
 		return width * WINDOW_WIDTH / DEFAULT_WINDOW_WIDTH;
 	}
 
-	unsigned Game::RelativeHeight(unsigned height)
+	unsigned Game::CalcRelativeHeight(unsigned height)
 	{
 		return height * WINDOW_HEIGHT / DEFAULT_WINDOW_HEIGHT;
-	}
-
-	unsigned Game::RelativeFontSize(unsigned fontSize)
-	{
-		return RelativeHeight(fontSize);
 	}
 
 	SDL_Color Game::GetColor(Color color)
 	{
 		switch (color)
 		{
-		case Color::red:
+		case Color::Red:
 			return SDL_Color{ 255, 0, 0, 255 };
 
-		case Color::green:
+		case Color::Green:
 			return SDL_Color{ 0, 255, 0, 255 };
 
-		case Color::black:
+		case Color::Black:
 			return SDL_Color{ 0, 0, 0, 255 };
 
-		case Color::blue:
+		case Color::Blue:
 			return SDL_Color{ 0, 0, 255, 255 };
 
-		case Color::white:
+		case Color::White:
 			return SDL_Color{ 255, 255, 255, 255 };
 
-		case Color::transparentBlack:
+		case Color::TransparentBlack:
 			return SDL_Color{ 0, 0, 0, 150 };
 
 		default:
@@ -986,73 +1070,149 @@ namespace GameNamespace
 		}
 	}
 
-	void Game::OpenFonts()
+	SDL_Rect Game::CalcTextDimensions(Font fontType, const char* text)
 	{
-		gameOverFont = TTF_OpenFont(FONT_FILE_PATH, MAIN_FONT_SIZE);
-		sceneFont = TTF_OpenFont(FONT_FILE_PATH, SCENE_FONT_SIZE);
+		int textWidth{}, textHeight{};
 
-		if (gameOverFont == NULL || sceneFont == NULL)
+		if (TTF_SizeText(resourceHandler->GetFont(fontType), text, &textWidth, &textHeight))
 		{
-			throw FontNullReference();
+			throw TTFSizeTextException();
 		}
-	}
 
-	void Game::LoadTextures()
-	{
-		blockTexture = LoadTexture(BLOCK_TEXTURE_FILE_PATH);
-		backgroundTexture = LoadTexture(BACKGROUND_TEXTURE_FILE_PATH);
-		boardTexture = LoadTexture(BOARD_TEXTURE_FILE_PATH);
-		infoBlockTexture = LoadTexture(INFO_BLOCK_TEXTURE_FILE_PATH);
-		textInputTexture = LoadTexture(TEXT_INPUT_TEXTURE_FILE_PATH);
-
-		if (SDL_SetTextureAlphaMod(boardTexture, 100))
-		{
-			throw SetTextureAlphaModException();
-		}
+		return { 0, 0, textWidth, textHeight };
 	}
 
 	void Game::CreateUI()
 	{
-		CreatePlayButton();
-	}
-
-	void Game::CreatePlayButton()
-	{
-		int buttonRelativeWidth = RelativeWidth(PLAY_BUTTON_WIDTH);
-		int buttonRelativeHeight = RelativeHeight(PLAY_BUTTON_HEIGHT);
-
-		POINT playButtonPosition
+		SDL_Rect buttonRect
 		{
-			(WINDOW_WIDTH - buttonRelativeWidth) / 2,
-			(WINDOW_HEIGHT - buttonRelativeHeight) / 2
+			CalcTextDimensions(Font::Button, PLAY_BUTTON_TEXT)
 		};
 
-		menuButton = std::make_unique<Button>(
-			playButtonPosition,
-			buttonRelativeWidth,
-			buttonRelativeHeight,
+		buttonRect.x = (WINDOW_WIDTH - buttonRect.w) / 2;
+		buttonRect.y = (WINDOW_HEIGHT - buttonRect.h) / 2;
+
+		AddButton(
+			buttonRect,
+			Font::Button,
+			PLAY_BUTON_FONT_COLOR,
+			PLAY_BUTTON_TEXT,
+			StartGame
+		);
+	}
+
+	Button* Game::CreateButton(
+		SDL_Rect buttonRect,
+		Font font,
+		Color color,
+		const char* text, 
+		void (*function)())
+	{
+		return new Button(
+			buttonRect,
 			renderer,
-			"Play",
-			sceneFont,
-			BUTTON_FONT_COLOR,
-			StartGame);
+			text,
+			resourceHandler->GetFont(font),
+			GetColor(color),
+			function
+		);
+	}
+
+	TextInput* Game::CreateTextInput(
+		SDL_Rect textInputRect,
+		Font font,
+		Color textColor,
+		Color caretteColor,
+		int textMaxLenght)
+	{
+		SDL_Rect textInputRelativeRect
+		{
+			textInputRect.x,
+			textInputRect.y,
+			CalcRelativeWidth(textInputRect.w),
+			CalcRelativeHeight(textInputRect.h)
+		};
+
+		return new TextInput(
+			textInputRelativeRect,
+			renderer,
+			resourceHandler->GetTexture(Texture::TextInput),
+			resourceHandler->GetFont(font),
+			GetColor(textColor),
+			GetColor(caretteColor),
+			textMaxLenght
+		);
+	}
+
+	void Game::AddButton(
+		SDL_Rect buttonRect,
+		Font font,
+		Color color,
+		const char* text,
+		void (*function)())
+	{
+		UIElements.push_back(
+			std::unique_ptr<UIElement>(
+				CreateButton(
+					buttonRect,
+					font,
+					color,
+					text,
+					function
+				)
+			)
+		);
+	}
+
+	void Game::AddTextInput(
+		SDL_Rect textInputRect,
+		Font font,
+		Color textColor,
+		Color caretteColor,
+		int textMaxLenght)
+	{
+		UIElements.push_back(
+			std::unique_ptr<UIElement>(
+				CreateTextInput(
+					textInputRect,
+					font,
+					textColor,
+					caretteColor,
+					textMaxLenght
+				)
+			)
+		);
 	}
 
 	void Game::RenderMenu()
 	{
-		menuButton->Render(renderer);
+		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		{
+			UIElements[elementIndex]->Render(renderer);
+		}
 	}
 
 	void Game::HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY)
 	{
-		menuButton->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		{
+			UIElements[elementIndex]->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+		}
 	}
 
 	void Game::HandleMenuTextInput(const char* text)
 	{
+		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		{
+			UIElements[elementIndex]->HandleTextInput(text);
+		}
 	}
 
 	void Game::HandleMenuKeyDown(SDL_Keycode keyCode)
 	{
+		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		{
+			UIElements[elementIndex]->HandleKeyDown(keyCode);
+		}
 	}
 }

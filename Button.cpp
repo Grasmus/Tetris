@@ -3,26 +3,15 @@
 namespace GameNamespace 
 {
 	Button::Button(
-		POINT position,
-		int width,
-		int height,
+		SDL_Rect rect,
 		SDL_Renderer* renderer,
 		const char* text,
 		TTF_Font* font,
 		SDL_Color color,
 		void (*function)()
-	):
-		position(position),
-		height(height),
-		width(width),
-		function(function)
+	): function(function)
 	{
-		buttonRect = {
-			position.x,
-			position.y,
-			width,
-			height
-		};
+		this->rect = rect;
 
 		SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
 
@@ -38,7 +27,7 @@ namespace GameNamespace
 			throw MessageNullReference();
 		}
 
-		SDL_RenderCopy(renderer, message, NULL, &buttonRect);
+		SDL_RenderCopy(renderer, message, NULL, &rect);
 		SDL_FreeSurface(surface);
 	}
 
@@ -50,22 +39,17 @@ namespace GameNamespace
 	void Button::Render(SDL_Renderer* renderer)
 	{
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-		SDL_RenderFillRect(renderer, &buttonRect);
-		SDL_RenderCopy(renderer, message, NULL, &buttonRect);
+		SDL_RenderFillRect(renderer, &rect);
+		SDL_RenderCopy(renderer, message, NULL, &rect);
 	}
 
-	void Button::HandleMouseLeftClick(POINT pressPoint)
+	void Button::HandleMouseLeftClick(SDL_Point pressPoint)
 	{
-		if (pressPoint.x >= position.x && pressPoint.x <= position.x + width
+		if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w
 			&&
-			pressPoint.y >= position.y && pressPoint.y <= position.y + height)
+			pressPoint.y >= rect.y && pressPoint.y <= rect.y + rect.h)
 		{
 			function();
 		}
-	}
-
-	POINT Button::GetPostion() const
-	{
-		return position;
 	}
 }
