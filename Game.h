@@ -1,13 +1,14 @@
 #pragma once
 
 #include <Windows.h>
-#include "Constants.h"
-#include <SDL.h>
-#include <SDL_main.h>
-#include <vector>
+#include <time.h>
+#include <stdio.h>
+#include <iostream>
+#include <string>
+#include "ResourceHandler.h"
 #include "Button.h"
-#include <memory>
 #include "TextInput.h"
+#include "Strings.h"
 
 namespace GameNamespace
 {
@@ -26,35 +27,31 @@ namespace GameNamespace
 		static void StartGame();
 		static Game* Init();
 
-		static Game *game;
+		static Game* game;
 
 	private:
 		SDL_Renderer* renderer{};
 		SDL_Window* window{};
-		TTF_Font* gameOverFont{};
-		TTF_Font* sceneFont{};
-		SDL_Texture* blockTexture{};
-		SDL_Texture* backgroundTexture{};
-		SDL_Texture* boardTexture{};
-		SDL_Texture* infoBlockTexture{};
-		SDL_Texture* textInputBackgroundTexture{};
-		SDL_Texture* textInputTexture{};
+		std::unique_ptr<ResourceHandler> resourceHandler{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
 		size_t rotation{};
 		size_t nextRotation{};
-		POINT currentFigurePosition
+
+		SDL_Point currentFigurePosition
 		{
 			BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
 			BOARD_POSITION_Y
 		};
-		POINT boardPosition
+
+		SDL_Point boardPosition
 		{
 			BOARD_POSITION_X,
 			BOARD_POSITION_Y
 		};
-		std::unique_ptr<Button> menuButton{};
+
+		std::vector<std::unique_ptr<UIElement>> UIElements{};
 
 		GameState gameState{ GameState::MenuMode };
 
@@ -85,32 +82,62 @@ namespace GameNamespace
 		void DrawFigure(FigureKind figure, size_t rotation, int x, int y);
 		void DrawBoard();
 		void DrawScene();
-		void DrawBlock(POINT point, Color color);
-		void DrawBlock(POINT point, SDL_Texture* texture);
+		void DrawBlock(SDL_Point position, Color color);
+		void DrawBlock(SDL_Point position, SDL_Texture* texture);
 		void SetColor(Color color);
 		void CreateMessage(
 			Font fontKind,
 			const char* text,
-			SDL_Color color,
-			SDL_Rect messageRectangle);
-		TTF_Font* GetFont(Font font);
+			Color color,
+			int width, 
+			int height, 
+			SDL_Point position);
 		void PrintGameOver();
 		void AddScore();
 		void PrintPauseGame();
 		SDL_Texture* LoadTexture(const char* textureFilePath);
 
-		unsigned RelativeWidth(unsigned width);
-		unsigned RelativeHeight(unsigned height);
-		unsigned RelativeFontSize(unsigned fontSize);
+		unsigned CalcRelativeWidth(unsigned width);
+		unsigned CalcRelativeHeight(unsigned height);
+		SDL_Point CalcRelativePosition(SDL_Point position);
+		SDL_Rect CalcRelativeRect(SDL_Rect rect);
 
 		SDL_Color GetColor(Color color);
-
-		void OpenFonts();
-		void LoadTextures();
+		SDL_Rect CalcTextDimensions(Font fontType, const char* text);
 
 		void CreateUI();
 
-		void CreatePlayButton();
+		Button* CreateButton(
+			SDL_Rect buttonRect,
+			Font font,
+			Color color,
+			const char* text,
+			void (*function)()
+		);
+
+		TextInput* CreateTextInput(
+			SDL_Rect textInputRect,
+			Font font,
+			Color textColor,
+			Color caretteColor,
+			int textMaxLenght
+		);
+
+		void AddButton(
+			SDL_Rect buttonRect,
+			Font font,
+			Color color,
+			const char* text,
+			void (*function)()
+		);
+
+		void AddTextInput(
+			SDL_Rect textInputRect,
+			Font font,
+			Color textColor,
+			Color caretteColor,
+			int textMaxLenght
+		);
 
 		void RenderMenu();
 

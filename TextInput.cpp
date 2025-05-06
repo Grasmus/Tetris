@@ -3,15 +3,14 @@
 namespace GameNamespace
 {
     TextInput::TextInput(
+        SDL_Rect rect,
         SDL_Renderer* renderer,
         SDL_Texture* texture,
         TTF_Font* font,
-        SDL_Rect rect,
         SDL_Color textColor,
         SDL_Color caretColor,
         int textMaxLength
     ): 
-        rect(rect),
         textColor(textColor),
         caretColor(caretColor),
         textMaxLength(textMaxLength)
@@ -28,6 +27,7 @@ namespace GameNamespace
 
         this->texture = texture;
         this->font = font;
+        this->rect = rect;
     }
 
     TextInput::~TextInput()
@@ -40,9 +40,10 @@ namespace GameNamespace
         SDL_DestroyTexture(texture);
     }
 
-    void TextInput::HandleMouseLeftClick(POINT pressPoint)
+    void TextInput::HandleMouseLeftClick(SDL_Point pressPoint)
     {
-        if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w &&
+        if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w 
+            &&
             pressPoint.y >= rect.y && pressPoint.y <= rect.y + rect.h)
         {
             isActive = true;

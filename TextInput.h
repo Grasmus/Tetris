@@ -2,25 +2,26 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <string>
-#include "Constants.h"
-#include "GameExceptions.h"
 #include <SDL_timer.h>
+#include "GameExceptions.h"
+#include "UIElement.h"
+#include "Constants.h"
 
 namespace GameNamespace
 {
-    class TextInput {
+    class TextInput : public UIElement {
     public:
         TextInput(
+            SDL_Rect rect,
             SDL_Renderer* renderer,
             SDL_Texture* texture,
             TTF_Font* font,
-            SDL_Rect rect,
             SDL_Color textColor,
             SDL_Color caretColor,
             int textMaxLenght);
         ~TextInput();
 
-        void HandleMouseLeftClick(POINT pressPoint);
+        void HandleMouseLeftClick(SDL_Point pressPoint);
         void HandleTextInput(const char* textInput);
         void HandleKeyDown(SDL_Keycode keyCode);
         void Render(SDL_Renderer* renderer);
@@ -31,7 +32,6 @@ namespace GameNamespace
         TTF_Font* font{};
         SDL_Color textColor{};
         SDL_Color caretColor{};
-        SDL_Rect rect{};
         std::string text{};
         bool isActive{};
         int caretPosition{};
