@@ -4,7 +4,6 @@ namespace GameNamespace
 {
     TextInput::TextInput(
         SDL_Rect rect,
-        SDL_Renderer* renderer,
         SDL_Texture* texture,
         TTF_Font* font,
         SDL_Color textColor,
@@ -40,7 +39,7 @@ namespace GameNamespace
         SDL_DestroyTexture(texture);
     }
 
-    void TextInput::HandleMouseLeftClick(SDL_Point pressPoint)
+    bool TextInput::HandleMouseLeftClick(SDL_Point pressPoint)
     {
         if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w 
             &&
@@ -49,12 +48,16 @@ namespace GameNamespace
             isActive = true;
 
             SDL_StartTextInput();
+
+            return true;
         }
         else
         {
             isActive = false;
 
             SDL_StopTextInput();
+
+            return false;
         }
     }
 

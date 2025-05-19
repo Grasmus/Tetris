@@ -6,12 +6,14 @@ namespace GameNamespace
 	ResourceHandler::ResourceHandler() {}
 	ResourceHandler::~ResourceHandler() {}
 
-	void ResourceHandler::LoadFonts(SDL_Renderer* renderer)
+	void ResourceHandler::LoadFonts(SDL_Renderer* renderer, int windowWidth)
 	{
+		fonts.clear();
+
 		for (int i{}; i < FONTS_AMOUNT; i++)
 		{
 			fonts.push_back(std::unique_ptr<TTF_Font, SDLFontDestroyer>(
-				LoadFont(renderer, FONT_SIZES[i], i)
+				LoadFont(renderer, FONT_SIZES[i], i, windowWidth)
 			));
 		}
 	}
@@ -63,9 +65,9 @@ namespace GameNamespace
 		return texture;
 	}
 
-	TTF_Font* ResourceHandler::LoadFont(SDL_Renderer* renderer, int fontSize, int fontIndex)
+	TTF_Font* ResourceHandler::LoadFont(SDL_Renderer* renderer, int fontSize, int fontIndex, int windowWidth)
 	{
-		TTF_Font* font{ TTF_OpenFont(FONT_FILE_PATH, CalcRelativeFontSize(fontSize, fontIndex)) };
+		TTF_Font* font{ TTF_OpenFont(FONT_FILE_PATH, CalcRelativeFontSize(fontSize, fontIndex, windowWidth)) };
 
 		if (font == NULL)
 		{
@@ -75,9 +77,9 @@ namespace GameNamespace
 		return font;
 	}
 
-	unsigned ResourceHandler::CalcRelativeFontSize(unsigned fontSize, int fontIndex)
+	unsigned ResourceHandler::CalcRelativeFontSize(unsigned fontSize, int fontIndex, int windowWidth) const
 	{
-		unsigned scale = WINDOW_WIDTH * FONT_SCALERS[fontIndex];
+		unsigned scale = windowWidth * FONT_SCALERS[fontIndex];
 
 		return fontSize + scale;
 	}

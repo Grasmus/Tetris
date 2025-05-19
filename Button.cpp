@@ -1,4 +1,5 @@
 #include "Button.h"
+#include "GameExceptions.h"
 
 namespace GameNamespace 
 {
@@ -11,24 +12,7 @@ namespace GameNamespace
 		void (*function)()
 	): function(function)
 	{
-		this->rect = rect;
-
-		SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
-
-		if (surface == NULL)
-		{
-			throw SurfaceNullReference();
-		}
-
-		message = SDL_CreateTextureFromSurface(renderer, surface);
-
-		if (message == NULL)
-		{
-			throw MessageNullReference();
-		}
-
-		SDL_RenderCopy(renderer, message, NULL, &rect);
-		SDL_FreeSurface(surface);
+		SetText(rect, renderer, text, font, color);
 	}
 
 	Button::~Button()
@@ -43,13 +27,47 @@ namespace GameNamespace
 		SDL_RenderCopy(renderer, message, NULL, &rect);
 	}
 
-	void Button::HandleMouseLeftClick(SDL_Point pressPoint)
+	bool Button::HandleMouseLeftClick(SDL_Point pressPoint)
 	{
 		if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w
 			&&
 			pressPoint.y >= rect.y && pressPoint.y <= rect.y + rect.h)
 		{
-			function();
+			if (function != nullptr)
+			{
+				function();
+			}
+
+			return true;
 		}
+
+		return false;
+	}
+
+	void Button::SetText(
+		SDL_Rect rect, 
+		SDL_Renderer* renderer, 
+		const char* text,
+		TTF_Font* font,
+		SDL_Color color)
+	{
+		this->rect = rect;
+
+		SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
+
+		if (surface == nullptr)
+		{
+			throw SurfaceNullReference();
+		}
+
+		message = SDL_CreateTextureFromSurface(renderer, surface);
+
+		if (message == nullptr)
+		{
+			throw MessageNullReference();
+		}
+
+		SDL_RenderCopy(renderer, message, nullptr, &rect);
+		SDL_FreeSurface(surface);
 	}
 }

@@ -231,11 +231,12 @@ namespace GameNamespace
 
     enum class GameState
     {
-        MenuMode,
+        Menu,
         Inactive,
         Running,
         Paused,
-        GameOver
+        GameOver,
+        Settings
     };
 
     enum class PieceMovement

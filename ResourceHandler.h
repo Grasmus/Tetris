@@ -7,7 +7,6 @@
 #include <SDL_main.h>
 #include "GameExceptions.h"
 #include "Layout.h"
-#include "Constants.h"
 
 namespace GameNamespace
 {
@@ -34,20 +33,19 @@ namespace GameNamespace
 		ResourceHandler();
 		~ResourceHandler();
 
-		void LoadFonts(SDL_Renderer* renderer);
+		void LoadFonts(SDL_Renderer* renderer, int windowWidth);
 		void LoadTextures(SDL_Renderer* renderer);
 
 		TTF_Font* GetFont(Font font) const;
 		SDL_Texture* GetTexture(Texture texture) const;
 
 	private:
-
 		std::vector<std::unique_ptr<TTF_Font, SDLFontDestroyer>> fonts{};
 		std::vector<std::unique_ptr<SDL_Texture, SDLTextureDestroyer>> textures{};
 
 		SDL_Texture* LoadTexture(SDL_Renderer* renderer, const char* textureFilePath);
-		TTF_Font* LoadFont(SDL_Renderer* renderer, int fontSize, int fontIndex);
+		TTF_Font* LoadFont(SDL_Renderer* renderer, int fontSize, int fontIndex, int windowWidth);
 
-		unsigned CalcRelativeFontSize(unsigned fontSize, int fontIndex);
+		unsigned CalcRelativeFontSize(unsigned fontSize, int fontIndex, int windowWidth) const;
 	};
 }

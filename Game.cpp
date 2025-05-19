@@ -2,10 +2,29 @@
 
 namespace GameNamespace
 {
+	const char* SETTINGS_FILE_NAME{ "settings.txt" };
+	const char* RESOLUTION_SETTING_NAME{ "Screen resolution" };
+
+	static std::vector<ScreenResolution> SCREEN_RESOLUTIONS
+	{
+		ScreenResolution{ "640x480", 640, 480 },
+		ScreenResolution{ "800x600", 800, 600 },
+		ScreenResolution{ "1366x768", 1366, 768 },
+		ScreenResolution{ "1600x900", 1600, 900 },
+		ScreenResolution{ "1920x1080", 1920, 1080 },
+		ScreenResolution{ "3840x2160", 3840, 2160 }
+	};
+
+	static std::map<SettingsType, std::vector<SettingValue*>> settingValues{};
+
 	Game* Game::game;
 
-	Game::Game(): resourceHandler(new ResourceHandler())
+	Game::Game(): 
+		settings(new Settings(SETTINGS_FILE_NAME)), 
+		resourceHandler(new ResourceHandler())
 	{
+		CreateLayout();
+
 		if (SDL_Init(SDL_INIT_EVERYTHING))
 		{
 			throw SDLInitException();
@@ -15,8 +34,8 @@ namespace GameNamespace
 			GAME_WINDOW_NAME,
 			SDL_WINDOWPOS_CENTERED,
 			SDL_WINDOWPOS_CENTERED,
-			WINDOW_WIDTH,
-			WINDOW_HEIGHT,
+			layout->GetWindowWidth(),
+			layout->GetWindowHeight(),
 			0
 		);
 
@@ -37,7 +56,7 @@ namespace GameNamespace
 			throw TTFInitException();
 		}
 
-		resourceHandler->LoadFonts(renderer);
+		resourceHandler->LoadFonts(renderer, layout->GetWindowWidth());
 		resourceHandler->LoadTextures(renderer);
 
 		if (SDL_SetTextureAlphaMod(resourceHandler->GetTexture(Texture::Board), 100))
@@ -83,8 +102,12 @@ namespace GameNamespace
 			HandleGameOverEvent(event);
 			break;
 
-		case GameState::MenuMode:
-			HandleMainMenuEvent(event);
+		case GameState::Menu:
+			HandleGameEvent(event, UIDestination::Menu, GameState::Inactive);
+			break;
+
+		case GameState::Settings:
+			HandleGameEvent(event, UIDestination::Settings, GameState::Menu);
 			break;
 
 		default:
@@ -119,8 +142,12 @@ namespace GameNamespace
 			PrintGameOver();
 			break;
 
-		case GameState::MenuMode:
+		case GameState::Menu:
 			RenderMenu();
+			break;
+
+		case GameState::Settings:
+			RenderSettings();
 			break;
 
 		default:
@@ -158,8 +185,8 @@ namespace GameNamespace
 		{
 			position.x,
 			position.y,
-			BLOCK_SIZE,
-			BLOCK_SIZE
+			layout->GetBlockSize(),
+			layout->GetBlockSize()
 		};
 
 		SetColor(color);
@@ -172,8 +199,8 @@ namespace GameNamespace
 		{
 			position.x,
 			position.y,
-			BLOCK_SIZE,
-			BLOCK_SIZE
+			layout->GetBlockSize(),
+			layout->GetBlockSize()
 		};
 
 		SDL_RenderCopy(renderer, texture, NULL, &rect);
@@ -217,6 +244,15 @@ namespace GameNamespace
 		return FRAME_DELAY;
 	}
 
+	void Game::ResetFigurePosition()
+	{
+		currentFigurePosition = SDL_Point
+		{
+			layout->GetBoardRect().x + layout->GetPieceInitialShiftX(),
+			layout->GetBoardRect().y
+		};
+	}
+
 	void Game::DrawFigure()
 	{
 		int primalPosition{ currentFigurePosition.x };
@@ -228,16 +264,16 @@ namespace GameNamespace
 			{
 				if (Figures[static_cast<int>(currentFigure)][rotation][i][j] == 0)
 				{
-					piecePosition.x += BLOCK_SIZE;
+					piecePosition.x += layout->GetBlockSize();
 				}
 				else
 				{
 					DrawBlock(piecePosition, resourceHandler->GetTexture(Texture::Block));
-					piecePosition.x += BLOCK_SIZE;
+					piecePosition.x += layout->GetBlockSize();
 				}
 			}
 
-			piecePosition.y += BLOCK_SIZE;
+			piecePosition.y += layout->GetBlockSize();
 			piecePosition.x = primalPosition;
 		}
 	}
@@ -253,25 +289,27 @@ namespace GameNamespace
 			{
 				if (Figures[static_cast<int>(figure)][rotation][i][j] == 0)
 				{
-					piecePosition.x += BLOCK_SIZE;
+					piecePosition.x += layout->GetBlockSize();
 				}
 				else
 				{
 					DrawBlock(piecePosition, resourceHandler->GetTexture(Texture::Block));
-					piecePosition.x += BLOCK_SIZE;
+					piecePosition.x += layout->GetBlockSize();
 				}
 			}
 
-			piecePosition.y += BLOCK_SIZE;
+			piecePosition.y += layout->GetBlockSize();
 			piecePosition.x = primalXPosition;
 		}
 	}
 
 	void Game::DrawBoard()
 	{
-		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Board), NULL, &BOARD_RECT);
-		int primalXPosition{ boardPosition.x };
-		SDL_Point blockPosition{ boardPosition };
+		SDL_Rect drawBoardRect{ layout->GetDrawBoardRect() };
+
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Board), NULL, &drawBoardRect);
+		int primalXPosition{ layout->GetBoardRect().x };
+		SDL_Point blockPosition{ layout->GetBoardRect().x, layout->GetBoardRect().y };
 
 		for (int i{}; i < BOARD_HEIGHT_IN_BLOCKS; i++)
 		{
@@ -290,15 +328,15 @@ namespace GameNamespace
 					break;
 				}
 
-				blockPosition.x += BLOCK_SIZE;
+				blockPosition.x += layout->GetBlockSize();
 			}
 
 			blockPosition.x = primalXPosition;
-			blockPosition.y += BLOCK_SIZE;
+			blockPosition.y += layout->GetBlockSize();
 		}
 	}
 
-	void Game::HandleMainMenuEvent(SDL_Event event)
+	void Game::HandleGameEvent(SDL_Event event, UIDestination destination, GameState exitState)
 	{
 		int mouseCoordinateX{}, mouseCoordinateY{};
 
@@ -314,7 +352,7 @@ namespace GameNamespace
 			case SDL_BUTTON_LEFT:
 				SDL_GetMouseState(&mouseCoordinateX, &mouseCoordinateY);
 
-				HandleMenuMouseLeftClick(mouseCoordinateX, mouseCoordinateY);
+				HandleMouseLeftClick(mouseCoordinateX, mouseCoordinateY, destination);
 
 				break;
 
@@ -324,15 +362,27 @@ namespace GameNamespace
 
 			break;
 		case SDL_TEXTINPUT:
-			
-			HandleMenuTextInput(event.text.text);
+
+			HandleTextInput(event.text.text, destination);
 
 			break;
 		case SDL_KEYDOWN:
 
-			HandleMenuKeyDown(event.key.keysym.sym);
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+
+				gameState = exitState;
+
+				break;
+			default:
+				break;
+			}
+
+			HandleKeyDown(event.key.keysym.sym, destination);
 
 			break;
+
 		default:
 			break;
 		}
@@ -407,7 +457,7 @@ namespace GameNamespace
 				break;
 
 			case SDLK_ESCAPE:
-				gameState = GameState::MenuMode;
+				gameState = GameState::Menu;
 				break;
 
 			default:
@@ -436,7 +486,7 @@ namespace GameNamespace
 				break;
 
 			case SDLK_ESCAPE:
-				gameState = GameState::MenuMode;
+				gameState = GameState::Menu;
 				break;
 
 			default:
@@ -459,7 +509,7 @@ namespace GameNamespace
 
 			if (CheckIsPieceCanMove(Direction::Left))
 			{
-				currentFigurePosition.x -= BLOCK_SIZE;
+				currentFigurePosition.x -= layout->GetBlockSize();
 			}
 			break;
 
@@ -467,7 +517,7 @@ namespace GameNamespace
 
 			if (CheckIsPieceCanMove(Direction::Right))
 			{
-				currentFigurePosition.x += BLOCK_SIZE;
+				currentFigurePosition.x += layout->GetBlockSize();
 			}
 			break;
 
@@ -477,7 +527,7 @@ namespace GameNamespace
 
 			if (pieceRotation.pieceCanRotate)
 			{
-				currentFigurePosition.x += pieceRotation.pieceShift * BLOCK_SIZE;
+				currentFigurePosition.x += pieceRotation.pieceShift * layout->GetBlockSize();
 				rotation = pieceRotation.nextRotation;
 			}
 			break;
@@ -486,7 +536,7 @@ namespace GameNamespace
 
 			if (CheckIsPieceCanMove())
 			{
-				currentFigurePosition.y += BLOCK_SIZE;
+				currentFigurePosition.y += layout->GetBlockSize();
 			}
 			else
 			{
@@ -503,7 +553,7 @@ namespace GameNamespace
 			{
 				if (currentFrame == FPS)
 				{
-					currentFigurePosition.y += BLOCK_SIZE;
+					currentFigurePosition.y += layout->GetBlockSize();
 				}
 			}
 			else
@@ -528,18 +578,52 @@ namespace GameNamespace
 		game->rotation = rand() % PIECE_ROTATIONS;
 		game->nextRotation = rand() % PIECE_ROTATIONS;
 
-		game->currentFigurePosition = {
-			BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-			BOARD_POSITION_Y
-		};
+		game->CreateLayout();
 
 		game->score = 0;
 
 		game->gameState = GameState::Running;
 	}
 
+	void Game::EnterSettings()
+	{
+		game->gameState = GameState::Settings;
+	}
+
+	void Game::SaveSettings()
+	{
+		for (auto& uiElement : game->UIElements[UIDestination::Settings])
+		{
+			SettingsElement* settingsElement{ dynamic_cast<SettingsElement*>(uiElement.get()) };
+
+			if (settingsElement != nullptr)
+			{
+				SettingsType settingType{ settingsElement->GetSettingType() };
+				int currentValueIndex{ settingsElement->GetValueIndex() };
+
+				game->settings->SetSetting(
+					settingType, 
+					settingValues[settingType][currentValueIndex]->GetLable().c_str()
+				);
+			}
+		}
+
+		game->settings->Save();
+		game->CreateLayout();
+		game->ChangeWindowSize();
+		game->CreateUI();
+		game->gameState = GameState::Menu;
+	}
+
 	Game* Game::Init()
 	{
+		settingValues[SettingsType::ScreenResolution] = std::vector<SettingValue*>();
+
+		for (auto& screenResolution : SCREEN_RESOLUTIONS)
+		{
+			settingValues[SettingsType::ScreenResolution].push_back(&screenResolution);
+		}
+
 		if (!game)
 		{
 			game = new Game();
@@ -560,11 +644,8 @@ namespace GameNamespace
 			nextFigure = (FigureKind)(rand() % PIECE_KINDS);
 			rotation = nextRotation;
 			nextRotation = rand() % PIECE_ROTATIONS;
-			currentFigurePosition = {
-				BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-				BOARD_POSITION_Y
-			};
-
+			
+			ResetFigurePosition();
 			DeleteLines();
 			CheckIsGameOver();
 		}
@@ -595,8 +676,8 @@ namespace GameNamespace
 
 	bool Game::CheckIsPieceCanMove()
 	{
-		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
-		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE + 1;
+		int xIndex = (currentFigurePosition.x - layout->GetBoardRect().x) / layout->GetBlockSize();
+		int yIndex = (currentFigurePosition.y - layout->GetBoardRect().y) / layout->GetBlockSize() + 1;
 
 		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
@@ -622,8 +703,8 @@ namespace GameNamespace
 
 	bool Game::CheckIsPieceCanMove(Direction direction)
 	{
-		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE + (int)direction;
-		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
+		int xIndex = (currentFigurePosition.x - layout->GetBoardRect().x) / layout->GetBlockSize() + (int)direction;
+		int yIndex = (currentFigurePosition.y - layout->GetBoardRect().y) / layout->GetBlockSize();
 
 		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
@@ -649,8 +730,8 @@ namespace GameNamespace
 
 	PieceRotation Game::CheckIsPieceCanRotate()
 	{
- 		int xIndex{ (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE };
-		int yIndex{ (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE };
+ 		int xIndex{ (currentFigurePosition.x - layout->GetBoardRect().x) / layout->GetBlockSize() };
+		int yIndex{ (currentFigurePosition.y - layout->GetBoardRect().y) / layout->GetBlockSize() };
 		int nextRotation{ CalculateNextRotation() };
 
 		PieceRotation pieceRotaion{};
@@ -661,7 +742,7 @@ namespace GameNamespace
 			+ 
 			(int)Figures[static_cast<int>(currentFigure)][nextRotation][0].size() + 1
 			- 
-			(int)(BOARD_WIDTH / BLOCK_SIZE) 
+			(int)(layout->GetBoardRect().w / layout->GetBlockSize())
 		};
 
 		if (leftShift < 0)
@@ -723,8 +804,8 @@ namespace GameNamespace
 
 	void Game::SaveCurrentPiece()
 	{
-		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
-		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
+		int xIndex = (currentFigurePosition.x - layout->GetBoardRect().x) / layout->GetBlockSize();
+		int yIndex = (currentFigurePosition.y - layout->GetBoardRect().y) / layout->GetBlockSize();
 
 		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
@@ -797,8 +878,8 @@ namespace GameNamespace
 
 	void Game::CheckIsGameOver()
 	{
-		int xIndex = (currentFigurePosition.x - BOARD_POSITION_X) / BLOCK_SIZE;
-		int yIndex = (currentFigurePosition.y - BOARD_POSITION_Y) / BLOCK_SIZE;
+		int xIndex = (currentFigurePosition.x - layout->GetBoardRect().x) / layout->GetBlockSize();
+		int yIndex = (currentFigurePosition.y - layout->GetBoardRect().y) / layout->GetBlockSize();
 
 		for (int i{}; i < Figures[static_cast<int>(currentFigure)][rotation].size(); i++)
 		{
@@ -822,15 +903,17 @@ namespace GameNamespace
 
 	void Game::DrawScene()
 	{
-		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::InfoBlock), NULL, &INFO_BLOCK_RECT);
+		SDL_Rect infoBlockRect{ layout->GetInfoBlockRect() };
+
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::InfoBlock), NULL, &infoBlockRect);
 
 		int nextPieceWidth = (int)Figures[static_cast<int>(nextFigure)][nextRotation][0].size();
 		int nextPiecePositionX{ 
-			INFO_BLOCK_POSITION_X 
+			layout->GetInfoBlockRect().x
 			+ 
-			(INFO_BLOCK_WIDTH - BLOCK_SIZE * nextPieceWidth) / 2 };
+			(layout->GetInfoBlockRect().w - layout->GetBlockSize() * nextPieceWidth) / 2 };
 
-		DrawFigure(nextFigure, nextRotation, nextPiecePositionX, NEXT_PIECE_POSITION_Y);
+		DrawFigure(nextFigure, nextRotation, nextPiecePositionX, layout->GetNextPiecePositionY());
 
 		std::string scoreStr{ std::to_string(score) };
 
@@ -845,8 +928,8 @@ namespace GameNamespace
 
 		SDL_Point scorePosition
 		{
-			INFO_BLOCK_POSITION_X + (INFO_BLOCK_WIDTH - scoreDimensions.w) / 2,
-			INFO_BLOCK_POSITION_Y + SCORE_Y_OFFSET
+			layout->GetInfoBlockRect().x + (layout->GetInfoBlockRect().w - scoreDimensions.w) / 2,
+			layout->GetInfoBlockRect().y + layout->GetScoreYOffset()
 		};
 
 		CreateMessage(
@@ -904,8 +987,10 @@ namespace GameNamespace
 
 	void Game::PrintGameOver()
 	{
+		SDL_Rect backgroundRect{ layout->GetBackgroundRect() };
+
 		SetColor(Color::TransparentBlack);
-		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
+		SDL_RenderFillRect(renderer, &backgroundRect);
 
 		SDL_Rect gameOverDimensions
 		{
@@ -914,8 +999,8 @@ namespace GameNamespace
 
 		SDL_Point gameOverMessagePosition
 		{
-			(WINDOW_WIDTH - gameOverDimensions.w) / 2,
-			(WINDOW_HEIGHT - gameOverDimensions.h) / 2 - BLOCK_SIZE / 2
+			(layout->GetWindowWidth() - gameOverDimensions.w) / 2,
+			(layout->GetWindowHeight() - gameOverDimensions.h) / 2 - layout->GetBlockSize() / 2
 		};
 
 		SDL_Rect startAgainDimensions
@@ -925,10 +1010,10 @@ namespace GameNamespace
 
 		SDL_Point startAgainMessagePosition
 		{
-			(WINDOW_WIDTH - startAgainDimensions.w) / 2,
-			(WINDOW_HEIGHT - startAgainDimensions.h) / 2 
+			(layout->GetWindowWidth() - startAgainDimensions.w) / 2,
+			(layout->GetWindowHeight() - startAgainDimensions.h) / 2
 			+ 
-			(gameOverDimensions.h + BLOCK_SIZE) / 2
+			(gameOverDimensions.h + layout->GetBlockSize()) / 2
 		};
 
 		CreateMessage(
@@ -960,8 +1045,10 @@ namespace GameNamespace
 
 	void Game::PrintPauseGame()
 	{
+		SDL_Rect backgroundRect{ layout->GetBackgroundRect() };
+
 		SetColor(Color::TransparentBlack);
-		SDL_RenderFillRect(renderer, &BACKGROUND_RECTANGLE);
+		SDL_RenderFillRect(renderer, &backgroundRect);
 
 		SDL_Rect gamePausedDimensions
 		{
@@ -970,8 +1057,8 @@ namespace GameNamespace
 
 		SDL_Point gamePauseHeaderPosition
 		{
-			(WINDOW_WIDTH - gamePausedDimensions.w) / 2,
-			(WINDOW_HEIGHT - gamePausedDimensions.h) / 2 - BLOCK_SIZE / 2
+			(layout->GetWindowWidth() - gamePausedDimensions.w) / 2,
+			(layout->GetWindowHeight() - gamePausedDimensions.h) / 2 - layout->GetBlockSize() / 2
 		};
 
 		SDL_Rect gamePausedMessageDimensions
@@ -981,10 +1068,10 @@ namespace GameNamespace
 
 		SDL_Point gamePauseMessagePosition
 		{
-			(WINDOW_WIDTH - gamePausedMessageDimensions.w) / 2,
-			(WINDOW_HEIGHT - gamePausedMessageDimensions.h) / 2 
+			(layout->GetWindowWidth() - gamePausedMessageDimensions.w) / 2,
+			(layout->GetWindowHeight() - gamePausedMessageDimensions.h) / 2
 			+ 
-			(gamePausedDimensions.h + BLOCK_SIZE) / 2
+			(gamePausedDimensions.h + layout->GetBlockSize()) / 2
 		};
 
 		CreateMessage(
@@ -1033,14 +1120,37 @@ namespace GameNamespace
 		return texture;
 	}
 
+	void Game::CreateLayout()
+	{
+		std::string screenResolution{ settings->GetSetting(SettingsType::ScreenResolution) };
+
+		int windowWidth{ DEFAULT_WINDOW_WIDTH }, windowHeight{ DEFAULT_WINDOW_HEIGHT };
+
+		for (int i{}; i < settingValues[SettingsType::ScreenResolution].size(); i++)
+		{
+			if (settingValues[SettingsType::ScreenResolution][i]->GetLable().compare(screenResolution) == 0)
+			{
+				ScreenResolution* screenResolution = 
+					static_cast<ScreenResolution*>(settingValues[SettingsType::ScreenResolution][i]);
+
+				windowWidth = screenResolution->GetWidth();
+				windowHeight = screenResolution->GetHeight();
+			}
+		}
+
+		layout = std::unique_ptr<Layout>(new Layout(windowWidth, windowHeight));
+
+		ResetFigurePosition();
+	}
+
 	unsigned Game::CalcRelativeWidth(unsigned width)
 	{
-		return width * WINDOW_WIDTH / DEFAULT_WINDOW_WIDTH;
+		return width * layout->GetWindowWidth() / DEFAULT_WINDOW_WIDTH;
 	}
 
 	unsigned Game::CalcRelativeHeight(unsigned height)
 	{
-		return height * WINDOW_HEIGHT / DEFAULT_WINDOW_HEIGHT;
+		return height * layout->GetWindowHeight() / DEFAULT_WINDOW_HEIGHT;
 	}
 
 	SDL_Color Game::GetColor(Color color)
@@ -1084,21 +1194,107 @@ namespace GameNamespace
 
 	void Game::CreateUI()
 	{
-		SDL_Rect buttonRect
+		UIElements.clear();
+
+		SDL_Rect playButtonRect
 		{
 			CalcTextDimensions(Font::Button, PLAY_BUTTON_TEXT)
 		};
 
-		buttonRect.x = (WINDOW_WIDTH - buttonRect.w) / 2;
-		buttonRect.y = (WINDOW_HEIGHT - buttonRect.h) / 2;
+		playButtonRect.x = (layout->GetWindowWidth() - playButtonRect.w) / 2;
+		playButtonRect.y = (layout->GetWindowHeight() - playButtonRect.h) / 2;
 
 		AddButton(
-			buttonRect,
+			playButtonRect,
 			Font::Button,
-			PLAY_BUTON_FONT_COLOR,
+			MAIN_FONT_COLOR,
 			PLAY_BUTTON_TEXT,
-			StartGame
+			StartGame,
+			UIDestination::Menu
 		);
+
+		SDL_Rect settingsButtonRect
+		{
+			CalcTextDimensions(Font::Button, SETTINGS_BUTTON_TEXT)
+		};
+
+		settingsButtonRect.x = (layout->GetWindowWidth() - settingsButtonRect.w) / 2;
+		settingsButtonRect.y = (layout->GetWindowHeight() - settingsButtonRect.h) / 2 + playButtonRect.h;
+
+		AddButton(
+			settingsButtonRect,
+			Font::Button,
+			MAIN_FONT_COLOR,
+			SETTINGS_BUTTON_TEXT,
+			EnterSettings,
+			UIDestination::Menu
+		);
+
+		std::vector<std::string> resolutionLables{};
+
+		for (int i{}; i < settingValues[SettingsType::ScreenResolution].size(); i++)
+		{
+			ScreenResolution* screenResolution =
+				static_cast<ScreenResolution*>(settingValues[SettingsType::ScreenResolution][i]);
+
+			resolutionLables.push_back(screenResolution->GetLable());
+		}
+
+		SDL_Point resolutionSettingPosition
+		{
+			RESOLUTION_SETTING_POSITION_SCALERS.x * layout->GetBlockSize(),
+			RESOLUTION_SETTING_POSITION_SCALERS.y * layout->GetBlockSize()
+		};
+
+		int currentResolutionIndex{};
+
+		for (; currentResolutionIndex < settingValues[SettingsType::ScreenResolution].size(); currentResolutionIndex++)
+		{
+			ScreenResolution* screenResolution =
+				static_cast<ScreenResolution*>(settingValues[SettingsType::ScreenResolution][currentResolutionIndex]);
+
+			if (screenResolution->GetLable()
+				.compare(settings->GetSetting(SettingsType::ScreenResolution)) == 0)
+			{
+				break;
+			}
+		}
+
+		AddSettingsElement(
+			resolutionSettingPosition,
+			layout->GetWindowWidth() - RESOLUTION_SETTING_POSITION_SCALERS.x * 2 * layout->GetBlockSize(),
+			SettingsType::ScreenResolution,
+			RESOLUTION_SETTING_NAME,
+			resolutionLables,
+			currentResolutionIndex,
+			Font::Button,
+			Color::Red
+		);
+
+		SDL_Rect saveSettingsButtonRect
+		{
+			CalcTextDimensions(Font::Button, SETTINGS_SAVE_BUTTON_TEXT)
+		};
+
+		saveSettingsButtonRect.x = (layout->GetWindowWidth() - playButtonRect.w) / 2;
+		saveSettingsButtonRect.y = 
+			layout->GetWindowHeight() - SAVE_SETTINGS_BUTTON_Y_OFFSET_SCALER * layout->GetBlockSize();
+
+		AddButton(
+			saveSettingsButtonRect,
+			Font::Button,
+			MAIN_FONT_COLOR,
+			SETTINGS_SAVE_BUTTON_TEXT,
+			SaveSettings,
+			UIDestination::Settings
+		);
+	}
+
+	void Game::ChangeWindowSize()
+	{
+		SDL_SetWindowSize(window, layout->GetWindowWidth(), layout->GetWindowHeight());
+
+		resourceHandler->LoadFonts(renderer, layout->GetWindowWidth());
 	}
 
 	Button* Game::CreateButton(
@@ -1135,7 +1331,6 @@ namespace GameNamespace
 
 		return new TextInput(
 			textInputRelativeRect,
-			renderer,
 			resourceHandler->GetTexture(Texture::TextInput),
 			resourceHandler->GetFont(font),
 			GetColor(textColor),
@@ -1144,14 +1339,43 @@ namespace GameNamespace
 		);
 	}
 
+	SettingsElement* Game::CreateSettingsElement(
+		SDL_Point position, 
+		int width, 
+		SettingsType settingType,
+		const char* settingName, 
+		std::vector<std::string> values, 
+		int currentValueIndex, 
+		Font font,
+		Color textColor)
+	{
+		return new SettingsElement(
+			position,
+			width,
+			renderer,
+			settingType,
+			settingName,
+			values,
+			currentValueIndex,
+			resourceHandler->GetFont(font),
+			GetColor(textColor)
+		);
+	}
+
 	void Game::AddButton(
 		SDL_Rect buttonRect,
 		Font font,
 		Color color,
 		const char* text,
-		void (*function)())
+		void (*function)(),
+		UIDestination destination)
 	{
-		UIElements.push_back(
+		if (UIElements.find(destination) == UIElements.end())
+		{
+			UIElements[destination] = std::vector<std::unique_ptr<UIElement>>();
+		}
+
+		UIElements[destination].push_back(
 			std::unique_ptr<UIElement>(
 				CreateButton(
 					buttonRect,
@@ -1169,9 +1393,15 @@ namespace GameNamespace
 		Font font,
 		Color textColor,
 		Color caretteColor,
-		int textMaxLenght)
+		int textMaxLenght,
+		UIDestination destination)
 	{
-		UIElements.push_back(
+		if (UIElements.find(destination) == UIElements.end())
+		{
+			UIElements[destination] = std::vector<std::unique_ptr<UIElement>>();
+		}
+
+		UIElements[destination].push_back(
 			std::unique_ptr<UIElement>(
 				CreateTextInput(
 					textInputRect,
@@ -1184,35 +1414,79 @@ namespace GameNamespace
 		);
 	}
 
+	void Game::AddSettingsElement(
+		SDL_Point position, 
+		int width, 
+		SettingsType settingType,
+		const char* settingName, 
+		std::vector<std::string> values, 
+		int currentValueIndex, 
+		Font font,
+		Color textColor)
+	{
+		if (UIElements.find(UIDestination::Settings) == UIElements.end())
+		{
+			UIElements[UIDestination::Settings] = std::vector<std::unique_ptr<UIElement>>();
+		}
+
+		UIElements[UIDestination::Settings].push_back(
+			std::unique_ptr<UIElement>(
+				CreateSettingsElement(
+					position,
+					width,
+					settingType,
+					settingName,
+					values,
+					currentValueIndex,
+					font,
+					textColor
+				)
+			)
+		);
+	}
+
 	void Game::RenderMenu()
 	{
-		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		for (int elementIndex{}; elementIndex < UIElements[UIDestination::Menu].size(); elementIndex++)
 		{
-			UIElements[elementIndex]->Render(renderer);
+			UIElements[UIDestination::Menu][elementIndex]->Render(renderer);
 		}
 	}
 
-	void Game::HandleMenuMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY)
+	void Game::RenderSettings()
 	{
-		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		for (int elementIndex{}; elementIndex < UIElements[UIDestination::Settings].size(); elementIndex++)
 		{
-			UIElements[elementIndex]->HandleMouseLeftClick({ mouseCoordinateX, mouseCoordinateY });
+			UIElements[UIDestination::Settings][elementIndex]->Render(renderer);
 		}
 	}
 
-	void Game::HandleMenuTextInput(const char* text)
+	void Game::HandleMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY, UIDestination destination)
 	{
-		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		for (int elementIndex{}; elementIndex < UIElements[destination].size(); elementIndex++)
 		{
-			UIElements[elementIndex]->HandleTextInput(text);
+			UIElements[destination][elementIndex]->HandleMouseLeftClick(
+				{
+					mouseCoordinateX,
+					mouseCoordinateY
+				}
+			);
 		}
 	}
 
-	void Game::HandleMenuKeyDown(SDL_Keycode keyCode)
+	void Game::HandleTextInput(const char* text, UIDestination destination)
 	{
-		for (int elementIndex{}; elementIndex < UIElements.size(); elementIndex++)
+		for (int elementIndex{}; elementIndex < UIElements[destination].size(); elementIndex++)
 		{
-			UIElements[elementIndex]->HandleKeyDown(keyCode);
+			UIElements[destination][elementIndex]->HandleTextInput(text);
+		}
+	}
+
+	void Game::HandleKeyDown(SDL_Keycode keyCode, UIDestination destination)
+	{
+		for (int elementIndex{}; elementIndex < UIElements[destination].size(); elementIndex++)
+		{
+			UIElements[destination][elementIndex]->HandleKeyDown(keyCode);
 		}
 	}
 }

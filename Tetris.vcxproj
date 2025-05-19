@@ -143,9 +143,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Button.cpp" />
+    <ClCompile Include="Layout.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="ResourceHandler.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="SettingsElement.cpp" />
     <ClCompile Include="TextInput.cpp" />
+    <ClCompile Include="TextView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
@@ -156,8 +161,11 @@
     <ClInclude Include="resource4.h" />
     <ClInclude Include="ResourceHandler.h" />
     <ClInclude Include="Resources.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="SettingsElement.h" />
     <ClInclude Include="Strings.h" />
     <ClInclude Include="TextInput.h" />
+    <ClInclude Include="TextView.h" />
     <ClInclude Include="UIElement.h" />
   </ItemGroup>
   <ItemGroup>

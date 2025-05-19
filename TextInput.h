@@ -13,7 +13,6 @@ namespace GameNamespace
     public:
         TextInput(
             SDL_Rect rect,
-            SDL_Renderer* renderer,
             SDL_Texture* texture,
             TTF_Font* font,
             SDL_Color textColor,
@@ -21,7 +20,7 @@ namespace GameNamespace
             int textMaxLenght);
         ~TextInput();
 
-        void HandleMouseLeftClick(SDL_Point pressPoint);
+        bool HandleMouseLeftClick(SDL_Point pressPoint);
         void HandleTextInput(const char* textInput);
         void HandleKeyDown(SDL_Keycode keyCode);
         void Render(SDL_Renderer* renderer);

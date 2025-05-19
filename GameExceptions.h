@@ -68,4 +68,28 @@ namespace GameNamespace
 			return "TTF_SizeText failed";
 		}
 	};
+
+	struct SettingsFileNameException : public std::exception {
+		const char* what() const throw () {
+			return "Cannot open settings file";
+		}
+	};
+
+	struct SettingNotFoundException : public std::exception {
+		const char* what() const throw () {
+			return "Invalid setting name";
+		}
+	};
+
+	struct SettingsInvalidSyntaxException : public std::exception {
+		const char* what() const throw () {
+			return "Invalid settings syntax";
+		}
+	};
+
+	struct SettingsInvalidTypeException : public std::exception {
+		const char* what() const throw () {
+			return "Invalid settings type";
+		}
+	};
 };
