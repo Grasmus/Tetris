@@ -1,5 +1,4 @@
 #include "Game.h"
-#include "GameExceptions.h"
 #include <memory>
 #include <string>
 
@@ -12,7 +11,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        std::unique_ptr<Game> game{ new Game() };
+        std::unique_ptr<Game> game{ Game::Init() };
 
         while (game->IsRunning())
         {

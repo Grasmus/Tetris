@@ -1,43 +1,18 @@
 #include "Button.h"
+#include "GameExceptions.h"
 
 namespace GameNamespace 
 {
 	Button::Button(
-		POINT position,
-		int height,
-		int width,
+		SDL_Rect rect,
 		SDL_Renderer* renderer,
 		const char* text,
 		TTF_Font* font,
-		SDL_Color color)
+		SDL_Color color,
+		void (*function)()
+	): function(function)
 	{
-		this->position = position;
-		this->height = height;
-		this->width = width;
-
-		buttonRect = {
-			position.x,
-			position.y,
-			width,
-			height
-		};
-
-		SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
-
-		if (surface == NULL)
-		{
-			throw SurfaceNullReference();
-		}
-
-		message = SDL_CreateTextureFromSurface(renderer, surface);
-
-		if (message == NULL)
-		{
-			throw MessageNullReference();
-		}
-
-		SDL_RenderCopy(renderer, message, NULL, &buttonRect);
-		SDL_FreeSurface(surface);
+		SetText(rect, renderer, text, font, color);
 	}
 
 	Button::~Button()
@@ -45,22 +20,54 @@ namespace GameNamespace
 		SDL_DestroyTexture(message);
 	}
 
-	void Button::RenderButton(SDL_Renderer* renderer)
+	void Button::Render(SDL_Renderer* renderer)
 	{
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-		SDL_RenderFillRect(renderer, &buttonRect);
-		SDL_RenderCopy(renderer, message, NULL, &buttonRect);
+		SDL_RenderFillRect(renderer, &rect);
+		SDL_RenderCopy(renderer, message, NULL, &rect);
 	}
 
-	bool Button::PressButton(POINT pressPoint)
+	bool Button::HandleMouseLeftClick(SDL_Point pressPoint)
 	{
-		if (pressPoint.x >= position.x && pressPoint.x <= position.x + width
+		if (pressPoint.x >= rect.x && pressPoint.x <= rect.x + rect.w
 			&&
-			pressPoint.y >= position.y && pressPoint.y <= position.y + height)
+			pressPoint.y >= rect.y && pressPoint.y <= rect.y + rect.h)
 		{
+			if (function != nullptr)
+			{
+				function();
+			}
+
 			return true;
 		}
 
 		return false;
+	}
+
+	void Button::SetText(
+		SDL_Rect rect, 
+		SDL_Renderer* renderer, 
+		const char* text,
+		TTF_Font* font,
+		SDL_Color color)
+	{
+		this->rect = rect;
+
+		SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);
+
+		if (surface == nullptr)
+		{
+			throw SurfaceNullReference();
+		}
+
+		message = SDL_CreateTextureFromSurface(renderer, surface);
+
+		if (message == nullptr)
+		{
+			throw MessageNullReference();
+		}
+
+		SDL_RenderCopy(renderer, message, nullptr, &rect);
+		SDL_FreeSurface(surface);
 	}
 }

@@ -1,15 +1,23 @@
 #pragma once
 
 #include <Windows.h>
-#include "Constants.h"
-#include <SDL.h>
-#include <SDL_main.h>
-#include <vector>
-#include "Button.h"
-#include <memory>
+#include <time.h>
+#include <stdio.h>
+#include <iostream>
+#include <string>
+#include "ResourceHandler.h"
+#include "TextInput.h"
+#include "Strings.h"
+#include "SettingsElement.h"
 
 namespace GameNamespace
 {
+	enum class UIDestination
+	{
+		Menu,
+		Settings
+	};
+
 	class Game
 	{
 	public:
@@ -19,49 +27,47 @@ namespace GameNamespace
 		void HandleEvents();
 		void Render();
 		void Update();
-		bool IsRunning();
-		int GetFrameDelay();
+		bool IsRunning() const;
+		int GetFrameDelay() const;
+		void ResetFigurePosition();
+
+		static void StartGame();
+		static void EnterSettings();
+		static void SaveSettings();
+
+		static Game* Init();
+
+		static Game* game;
 
 	private:
 		SDL_Renderer* renderer{};
 		SDL_Window* window{};
-		TTF_Font* gameOverFont{};
-		TTF_Font* sceneFont{};
-		SDL_Texture* blockTexture{};
-		SDL_Texture* backgroundTexture{};
-		SDL_Texture* boardTexture{};
-		SDL_Texture* infoBlockTexture{};
+		std::unique_ptr<ResourceHandler> resourceHandler{};
+		std::unique_ptr<Settings> settings{};
+		std::unique_ptr<Layout> layout{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
 		size_t rotation{};
 		size_t nextRotation{};
-		POINT currentFigurePosition
-		{
-			BOARD_POSITION_X + PIECE_INITIAL_SHIFT_X,
-			BOARD_POSITION_Y
-		};
-		POINT boardPosition
-		{
-			BOARD_POSITION_X,
-			BOARD_POSITION_Y
-		};
-		std::unique_ptr<Button> menuButton{};
 
-		GameState gameState{ GameState::MenuMode };
+		SDL_Point currentFigurePosition{};
+
+		std::map<UIDestination, std::vector<std::unique_ptr<UIElement>>> UIElements{};
+
+		GameState gameState{ GameState::Menu };
 
 		PieceMovement pieceMovement{ PieceMovement::None };
 
 		int currentFrame{};
 		int score{};
 
-		void HandleMainMenuEvent(SDL_Event event);
+		void HandleGameEvent(SDL_Event event, UIDestination destination, GameState exitState);
 		void HandleGameEvent(SDL_Event event);
 		void HandleGamePausedEvent(SDL_Event event);
 		void HandleGameOverEvent(SDL_Event event);
 
 		void MovePiece();
-		void InitializeGame();
 		void GoToNextPiece();
 
 		std::vector<std::vector<int>> InitializeBoard();
@@ -69,7 +75,7 @@ namespace GameNamespace
 		bool CheckIsPieceCanMove(Direction direction);
 		PieceRotation CheckIsPieceCanRotate();
 		void CheckIsGameOver();
-		int CalculateNextRotation();
+		int CalculateNextRotation() const;
 		void AddFrame();
 		void DeleteLines();
 		void DropUpperBlocks(int yIndex);
@@ -78,18 +84,92 @@ namespace GameNamespace
 		void DrawFigure(FigureKind figure, size_t rotation, int x, int y);
 		void DrawBoard();
 		void DrawScene();
-		void DrawBlock(POINT point, Color color);
-		void DrawBlock(POINT point, SDL_Texture* texture);
+		void DrawBlock(SDL_Point position, Color color);
+		void DrawBlock(SDL_Point position, SDL_Texture* texture);
 		void SetColor(Color color);
 		void CreateMessage(
 			Font fontKind,
 			const char* text,
-			SDL_Color color,
-			SDL_Rect messageRectangle);
-		TTF_Font* GetFont(Font font);
+			Color color,
+			int width, 
+			int height, 
+			SDL_Point position);
 		void PrintGameOver();
 		void AddScore();
 		void PrintPauseGame();
 		SDL_Texture* LoadTexture(const char* textureFilePath);
+
+		unsigned CalcRelativeWidth(unsigned width);
+		unsigned CalcRelativeHeight(unsigned height);
+
+		SDL_Color GetColor(Color color);
+		SDL_Rect CalcTextDimensions(Font fontType, const char* text);
+
+		void CreateLayout();
+		void CreateUI();
+		void ChangeWindowSize();
+
+		Button* CreateButton(
+			SDL_Rect buttonRect,
+			Font font,
+			Color color,
+			const char* text,
+			void (*function)()
+		);
+
+		TextInput* CreateTextInput(
+			SDL_Rect textInputRect,
+			Font font,
+			Color textColor,
+			Color caretteColor,
+			int textMaxLenght
+		);
+
+		SettingsElement* CreateSettingsElement(
+			SDL_Point position,
+			int width,
+			SettingsType settingType,
+			const char* settingName,
+			std::vector<std::string> values,
+			int currentValueIndex,
+			Font font,
+			Color textColor
+		);
+
+		void AddButton(
+			SDL_Rect buttonRect,
+			Font font,
+			Color color,
+			const char* text,
+			void (*function)(),
+			UIDestination destination
+		);
+
+		void AddTextInput(
+			SDL_Rect textInputRect,
+			Font font,
+			Color textColor,
+			Color caretteColor,
+			int textMaxLenght,
+			UIDestination destination
+		);
+
+		void AddSettingsElement(
+			SDL_Point position,
+			int width,
+			SettingsType settingType,
+			const char* settingName,
+			std::vector<std::string> values,
+			int currentValueIndex,
+			Font font,
+			Color textColor
+		);
+
+		void RenderMenu();
+		void RenderSettings();
+
+		void HandleMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY, UIDestination destination);
+		void HandleTextInput(const char* tex, UIDestination destinationt);
+		void HandleKeyDown(SDL_Keycode keyCode, UIDestination destination);
 	};
 }

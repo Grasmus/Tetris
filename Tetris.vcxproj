@@ -73,13 +73,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\My content\Programming\Tetris\SDL2_image\include;D:\My content\Programming\Tetris\SDL2\include;D:\My content\Programming\Tetris\SDL2_ttf\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\My content\Programming\Tetris\SDL2_image\lib\x86;D:\My content\Programming\Tetris\SDL2\lib\x86;D:\My content\Programming\Tetris\SDL2_ttf\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\My content\Programming\Tetris\SDL2\include;D:\My content\Programming\Tetris\SDL2_image\include;D:\My content\Programming\Tetris\SDL2_ttf\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\My content\Programming\Tetris\SDL2\lib\x86;D:\My content\Programming\Tetris\SDL2_image\lib\x86;D:\My content\Programming\Tetris\SDL2_ttf\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -123,13 +119,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Tetris\SDL2\include;C:\Tetris\SDL2_image\include;C:\Tetris\SDL2_ttf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Tetris\SDL2\lib;C:\Tetris\SDL2_ttf\lib;C:\Tetris\SDL2_image\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;C:\Tetris\SDL2\lib\x64\SDL2main.lib;C:\Tetris\SDL2\lib\x64\SDL2.lib;C:\Tetris\SDL2_image\lib\x64\SDL2_image.lib;C:\Tetris\SDL2_ttf\lib\x64\SDL2_ttf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -142,7 +135,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -150,15 +143,30 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Button.cpp" />
+    <ClCompile Include="Layout.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="ResourceHandler.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="SettingsElement.cpp" />
+    <ClCompile Include="TextInput.cpp" />
+    <ClCompile Include="TextView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameExceptions.h" />
+    <ClInclude Include="Layout.h" />
     <ClInclude Include="resource4.h" />
+    <ClInclude Include="ResourceHandler.h" />
+    <ClInclude Include="Resources.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="SettingsElement.h" />
+    <ClInclude Include="Strings.h" />
+    <ClInclude Include="TextInput.h" />
+    <ClInclude Include="TextView.h" />
+    <ClInclude Include="UIElement.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tetris.rc" />
