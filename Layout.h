@@ -19,12 +19,18 @@ namespace GameNamespace
 
         BACKGROUND_RECT_HEIGHT_IN_BLOCKS{ 10 },
 
-        SAVE_SETTINGS_BUTTON_Y_OFFSET_SCALER{ 5 };
+        SAVE_SETTINGS_BUTTON_Y_OFFSET_SCALER{ 5 },
+        
+        LEADERBOARD_WIDTH_IN_BLOCKS{ 16 },
+        LEADERBOARD_PADDING{ 15 }, 
+        LEADERBOARD_Y_POSITION_IN_BLOCKS{ 10 };
 
     const Color
         MAIN_FONT_COLOR{ Color::Red };
 
     const SDL_Point RESOLUTION_SETTING_POSITION_SCALERS{ 3, 7 };
+
+    const SDL_Rect TEXT_INPUT_RECT{ 0, 0, 280, 103 };
 
     class Layout
     {

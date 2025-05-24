@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "DatabaseManager.h"
 #include <memory>
 #include <string>
 

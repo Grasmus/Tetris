@@ -17,7 +17,9 @@ namespace GameNamespace
             TTF_Font* font,
             SDL_Color textColor,
             SDL_Color caretColor,
-            int textMaxLenght);
+            int textMaxLenght,
+            void (*onKeyDown)(std::string&)
+        );
         ~TextInput();
 
         bool HandleMouseLeftClick(SDL_Point pressPoint);
@@ -38,6 +40,8 @@ namespace GameNamespace
         bool caretVisible{ true };
         int scrollOffset{};
         int textMaxLength{};
+
+        void (*onKeyDown)(std::string&);
 
         void RenderCaret(SDL_Renderer* renderer);
         void ScrollTextIfNeeded();

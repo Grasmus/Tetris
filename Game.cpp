@@ -1,9 +1,16 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "Game.h"
+#include "DatabaseManager.h"
+#include "TextInput.h"
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 namespace GameNamespace
 {
 	const char* SETTINGS_FILE_NAME{ "settings.txt" };
 	const char* RESOLUTION_SETTING_NAME{ "Screen resolution" };
+	const char* DEFAULT_DATABASE_PATH{ "tetris_users.db" };
 
 	static std::vector<ScreenResolution> SCREEN_RESOLUTIONS
 	{
@@ -21,7 +28,8 @@ namespace GameNamespace
 
 	Game::Game(): 
 		settings(new Settings(SETTINGS_FILE_NAME)), 
-		resourceHandler(new ResourceHandler())
+		resourceHandler(new ResourceHandler()),
+		dbManager(new DatabaseManager(DEFAULT_DATABASE_PATH))
 	{
 		CreateLayout();
 
@@ -68,6 +76,8 @@ namespace GameNamespace
 
 		srand(time(NULL));		
 
+		UpdateTopScores();
+
 		CreateUI();
 	}
 
@@ -110,6 +120,14 @@ namespace GameNamespace
 			HandleGameEvent(event, UIDestination::Settings, GameState::Menu);
 			break;
 
+		case GameState::Leaderboard:
+			HandleGameEvent(event, UIDestination::Leaderboard, GameState::Menu);
+			break;
+
+		case GameState::EnterUsername:
+			HandleGameEvent(event, UIDestination::EnterUsername, GameState::Menu);
+			break;
+
 		default:
 			break;
 		}
@@ -118,7 +136,7 @@ namespace GameNamespace
 	void Game::Render()
 	{
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Backgroun), NULL, NULL);
+		SDL_RenderCopy(renderer, resourceHandler->GetTexture(Texture::Background), NULL, NULL);
 
 		switch (gameState)
 		{
@@ -143,11 +161,19 @@ namespace GameNamespace
 			break;
 
 		case GameState::Menu:
-			RenderMenu();
+			RenderElements(UIDestination::Menu);
 			break;
 
 		case GameState::Settings:
-			RenderSettings();
+			RenderElements(UIDestination::Settings);
+			break;
+
+		case GameState::Leaderboard:
+			RenderElements(UIDestination::Leaderboard);
+			break;
+
+		case GameState::EnterUsername:
+			RenderElements(UIDestination::EnterUsername);
 			break;
 
 		default:
@@ -343,13 +369,16 @@ namespace GameNamespace
 		switch (event.type)
 		{
 		case SDL_QUIT:
+
 			gameState = GameState::Inactive;
+
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:
 			switch (event.button.button)
 			{
 			case SDL_BUTTON_LEFT:
+
 				SDL_GetMouseState(&mouseCoordinateX, &mouseCoordinateY);
 
 				HandleMouseLeftClick(mouseCoordinateX, mouseCoordinateY, destination);
@@ -366,6 +395,7 @@ namespace GameNamespace
 			HandleTextInput(event.text.text, destination);
 
 			break;
+
 		case SDL_KEYDOWN:
 
 			switch (event.key.keysym.sym)
@@ -375,6 +405,7 @@ namespace GameNamespace
 				gameState = exitState;
 
 				break;
+
 			default:
 				break;
 			}
@@ -487,6 +518,7 @@ namespace GameNamespace
 
 			case SDLK_ESCAPE:
 				gameState = GameState::Menu;
+				isScoreSaved = false;
 				break;
 
 			default:
@@ -570,8 +602,22 @@ namespace GameNamespace
 		pieceMovement = PieceMovement::None;
 	}
 
+	void Game::EnterUsername()
+	{
+		game->gameState = GameState::EnterUsername;
+	}
+
 	void Game::StartGame()
 	{
+		if (game->username.empty()) 
+		{
+			return; 
+		}
+
+		game->gameStartTime = game->GetCurrentTimeString();
+		game->score = 0;
+		game->isScoreSaved = false;
+
 		game->board = game->InitializeBoard();
 		game->currentFigure = (FigureKind)(rand() % PIECE_KINDS);
 		game->nextFigure = (FigureKind)(rand() % PIECE_KINDS);
@@ -580,14 +626,22 @@ namespace GameNamespace
 
 		game->CreateLayout();
 
-		game->score = 0;
-
 		game->gameState = GameState::Running;
 	}
 
 	void Game::EnterSettings()
 	{
 		game->gameState = GameState::Settings;
+	}
+
+	void Game::EnterLeaderboard()
+	{
+		game->gameState = GameState::Leaderboard;
+	}
+
+	void Game::EnterMenu()
+	{
+		game->gameState = GameState::Menu;
 	}
 
 	void Game::SaveSettings()
@@ -895,6 +949,13 @@ namespace GameNamespace
 					if (board[yIndex + i][xIndex + j] != 0)
 					{
 						gameState = GameState::GameOver;
+
+						if (!isScoreSaved && dbManager && !username.empty() && !gameStartTime.empty()) 
+						{
+							dbManager->addUser(username, gameStartTime, score);
+							isScoreSaved = true;
+							UpdateTopScores();
+						}
 					}
 				}
 			}
@@ -1138,7 +1199,7 @@ namespace GameNamespace
 			}
 		}
 
-		layout = std::unique_ptr<Layout>(new Layout(windowWidth, windowHeight));
+		layout = std::make_unique<Layout>(windowWidth, windowHeight);
 
 		ResetFigurePosition();
 	}
@@ -1196,21 +1257,76 @@ namespace GameNamespace
 	{
 		UIElements.clear();
 
+		SDL_Rect titleRect
+		{
+			CalcTextDimensions(Font::Title, TITLE_TEXT)
+		};
+
+		titleRect.x = (layout->GetWindowWidth() - titleRect.w) / 2;
+		titleRect.y = layout->GetWindowHeight() / 3 - titleRect.h / 2;
+
+		AddTextView(
+			titleRect,
+			TITLE_TEXT,
+			Font::Title,
+			Color::Red,
+			UIDestination::Menu
+		);
+
 		SDL_Rect playButtonRect
 		{
 			CalcTextDimensions(Font::Button, PLAY_BUTTON_TEXT)
 		};
 
 		playButtonRect.x = (layout->GetWindowWidth() - playButtonRect.w) / 2;
-		playButtonRect.y = (layout->GetWindowHeight() - playButtonRect.h) / 2;
+		playButtonRect.y = (layout->GetWindowHeight() - playButtonRect.h) / 2 + playButtonRect.h / 2;
 
 		AddButton(
 			playButtonRect,
 			Font::Button,
 			MAIN_FONT_COLOR,
 			PLAY_BUTTON_TEXT,
-			StartGame,
+			EnterUsername,
 			UIDestination::Menu
+		);
+
+		SDL_Rect textInputRect
+		{
+			0, 0,
+			TEXT_INPUT_RECT.w,
+			TEXT_INPUT_RECT.h
+		};
+
+		textInputRect.x = (layout->GetWindowWidth() - textInputRect.w) / 2;
+		textInputRect.y = 
+			(layout->GetWindowHeight() - textInputRect.h) / 2 - textInputRect.h;
+
+		AddTextInput(
+			textInputRect,
+			Font::TextInput,
+			Color::White,
+			Color::Red,
+			USERNAME_MAX_LENGTH,
+			UpdateUsernameFromTextInput,
+			UIDestination::EnterUsername
+		);
+
+		SDL_Rect startGameButtonRect
+		{
+			CalcTextDimensions(Font::Button, START_GAME_BUTTON_TEXT)
+		};
+
+		startGameButtonRect.x = (layout->GetWindowWidth() - startGameButtonRect.w) / 2;
+		startGameButtonRect.y = 
+			(layout->GetWindowHeight() - startGameButtonRect.h) / 2 + startGameButtonRect.h;
+
+		AddButton(
+			startGameButtonRect,
+			Font::Button,
+			MAIN_FONT_COLOR,
+			START_GAME_BUTTON_TEXT,
+			StartGame,
+			UIDestination::EnterUsername
 		);
 
 		SDL_Rect settingsButtonRect
@@ -1219,7 +1335,7 @@ namespace GameNamespace
 		};
 
 		settingsButtonRect.x = (layout->GetWindowWidth() - settingsButtonRect.w) / 2;
-		settingsButtonRect.y = (layout->GetWindowHeight() - settingsButtonRect.h) / 2 + playButtonRect.h;
+		settingsButtonRect.y = playButtonRect.y + playButtonRect.h;
 
 		AddButton(
 			settingsButtonRect,
@@ -1227,6 +1343,23 @@ namespace GameNamespace
 			MAIN_FONT_COLOR,
 			SETTINGS_BUTTON_TEXT,
 			EnterSettings,
+			UIDestination::Menu
+		);
+
+		SDL_Rect leaderboardButtonRect
+		{
+			CalcTextDimensions(Font::Button, LEADERBOARD_BUTTON_TEXT)
+		};
+
+		leaderboardButtonRect.x = (layout->GetWindowWidth() - leaderboardButtonRect.w) / 2;
+		leaderboardButtonRect.y = settingsButtonRect.y + settingsButtonRect.h;
+
+		AddButton(
+			leaderboardButtonRect,
+			Font::Button,
+			MAIN_FONT_COLOR,
+			LEADERBOARD_BUTTON_TEXT,
+			EnterLeaderboard,
 			UIDestination::Menu
 		);
 
@@ -1288,6 +1421,41 @@ namespace GameNamespace
 			SaveSettings,
 			UIDestination::Settings
 		);
+
+		SDL_Rect leaderboardRect
+		{
+			(layout->GetWindowWidth() - LEADERBOARD_WIDTH_IN_BLOCKS * layout->GetBlockSize()) / 2,
+			LEADERBOARD_Y_POSITION_IN_BLOCKS * layout->GetBlockSize(),
+			LEADERBOARD_WIDTH_IN_BLOCKS* layout->GetBlockSize(),
+			0
+		};
+
+		AddLeaderboard(
+			leaderboardRect,
+			LEADERBOARD_PADDING,
+			topScores,
+			Font::Scene,
+			Color::White,
+			Color::TransparentBlack
+		);
+
+		SDL_Rect leaderboardBackButton
+		{
+			CalcTextDimensions(Font::Button, LEADERBOARD_BACK_BUTTON_TEXT)
+		};
+
+		leaderboardBackButton.x = (layout->GetWindowWidth() - leaderboardBackButton.w) / 2;
+		leaderboardBackButton.y = 
+			leaderboardRect.y + UIElements[UIDestination::Leaderboard].back()->GetRect().h + layout->GetBlockSize();
+
+		AddButton(
+			leaderboardBackButton,
+			Font::Button,
+			Color::Red,
+			LEADERBOARD_BACK_BUTTON_TEXT,
+			EnterMenu,
+			UIDestination::Leaderboard
+		);
 	}
 
 	void Game::ChangeWindowSize()
@@ -1295,71 +1463,6 @@ namespace GameNamespace
 		SDL_SetWindowSize(window, layout->GetWindowWidth(), layout->GetWindowHeight());
 
 		resourceHandler->LoadFonts(renderer, layout->GetWindowWidth());
-	}
-
-	Button* Game::CreateButton(
-		SDL_Rect buttonRect,
-		Font font,
-		Color color,
-		const char* text, 
-		void (*function)())
-	{
-		return new Button(
-			buttonRect,
-			renderer,
-			text,
-			resourceHandler->GetFont(font),
-			GetColor(color),
-			function
-		);
-	}
-
-	TextInput* Game::CreateTextInput(
-		SDL_Rect textInputRect,
-		Font font,
-		Color textColor,
-		Color caretteColor,
-		int textMaxLenght)
-	{
-		SDL_Rect textInputRelativeRect
-		{
-			textInputRect.x,
-			textInputRect.y,
-			CalcRelativeWidth(textInputRect.w),
-			CalcRelativeHeight(textInputRect.h)
-		};
-
-		return new TextInput(
-			textInputRelativeRect,
-			resourceHandler->GetTexture(Texture::TextInput),
-			resourceHandler->GetFont(font),
-			GetColor(textColor),
-			GetColor(caretteColor),
-			textMaxLenght
-		);
-	}
-
-	SettingsElement* Game::CreateSettingsElement(
-		SDL_Point position, 
-		int width, 
-		SettingsType settingType,
-		const char* settingName, 
-		std::vector<std::string> values, 
-		int currentValueIndex, 
-		Font font,
-		Color textColor)
-	{
-		return new SettingsElement(
-			position,
-			width,
-			renderer,
-			settingType,
-			settingName,
-			values,
-			currentValueIndex,
-			resourceHandler->GetFont(font),
-			GetColor(textColor)
-		);
 	}
 
 	void Game::AddButton(
@@ -1376,14 +1479,13 @@ namespace GameNamespace
 		}
 
 		UIElements[destination].push_back(
-			std::unique_ptr<UIElement>(
-				CreateButton(
-					buttonRect,
-					font,
-					color,
-					text,
-					function
-				)
+			std::make_unique<Button>(
+				buttonRect,
+				renderer,
+				text,
+				resourceHandler->GetFont(font),
+				GetColor(color),
+				function
 			)
 		);
 	}
@@ -1394,6 +1496,40 @@ namespace GameNamespace
 		Color textColor,
 		Color caretteColor,
 		int textMaxLenght,
+		void (*onTextInput)(std::string&),
+		UIDestination destination)
+	{
+		if (UIElements.find(destination) == UIElements.end())
+		{
+			UIElements[destination] = std::vector<std::unique_ptr<UIElement>>();
+		}
+
+		SDL_Rect textInputRelativeRect
+		{
+			textInputRect.x,
+			textInputRect.y,
+			CalcRelativeWidth(textInputRect.w),
+			CalcRelativeHeight(textInputRect.h)
+		};
+
+		UIElements[destination].push_back(
+			std::make_unique<TextInput>(
+				textInputRelativeRect,
+				resourceHandler->GetTexture(Texture::TextInput),
+				resourceHandler->GetFont(font),
+				GetColor(textColor),
+				GetColor(caretteColor),
+				textMaxLenght,
+				onTextInput
+			)
+		);
+	}
+
+	void Game::AddTextView(
+		SDL_Rect textViewRect, 
+		const char* text, 
+		Font font, 
+		Color textColor, 
 		UIDestination destination)
 	{
 		if (UIElements.find(destination) == UIElements.end())
@@ -1402,14 +1538,12 @@ namespace GameNamespace
 		}
 
 		UIElements[destination].push_back(
-			std::unique_ptr<UIElement>(
-				CreateTextInput(
-					textInputRect,
-					font,
-					textColor,
-					caretteColor,
-					textMaxLenght
-				)
+			std::make_unique<TextView>(
+				textViewRect,
+				resourceHandler->GetFont(font),
+				renderer,
+				GetColor(textColor),
+				text
 			)
 		);
 	}
@@ -1430,34 +1564,69 @@ namespace GameNamespace
 		}
 
 		UIElements[UIDestination::Settings].push_back(
-			std::unique_ptr<UIElement>(
-				CreateSettingsElement(
-					position,
-					width,
-					settingType,
-					settingName,
-					values,
-					currentValueIndex,
-					font,
-					textColor
-				)
+			std::make_unique<SettingsElement>(
+				position,
+				width,
+				renderer,
+				settingType,
+				settingName,
+				values,
+				currentValueIndex,
+				resourceHandler->GetFont(font),
+				GetColor(textColor)
 			)
 		);
 	}
 
-	void Game::RenderMenu()
+	void Game::AddLeaderboard(
+		SDL_Rect rect, 
+		int padding, 
+		std::vector<ScoreEntry> topScores, 
+		Font font, 
+		Color textColor, 
+		Color backgroundColor)
 	{
-		for (int elementIndex{}; elementIndex < UIElements[UIDestination::Menu].size(); elementIndex++)
+		if (UIElements.find(UIDestination::Leaderboard) == UIElements.end())
 		{
-			UIElements[UIDestination::Menu][elementIndex]->Render(renderer);
+			UIElements[UIDestination::Leaderboard] = std::vector<std::unique_ptr<UIElement>>();
+		}
+
+		UIElements[UIDestination::Leaderboard].push_back(
+			std::make_unique<Leaderboard>(
+				rect,
+				renderer,
+				padding,
+				topScores,
+				resourceHandler->GetFont(font),
+				GetColor(textColor),
+				GetColor(backgroundColor)
+			)
+		);
+	}
+
+	void Game::RenderElements(UIDestination destination)
+	{
+		for (int elementIndex{}; elementIndex < UIElements[destination].size(); elementIndex++)
+		{
+			UIElements[destination][elementIndex]->Render(renderer);
 		}
 	}
 
-	void Game::RenderSettings()
+	void Game::UpdateTopScores()
 	{
-		for (int elementIndex{}; elementIndex < UIElements[UIDestination::Settings].size(); elementIndex++)
+		if (dbManager) 
 		{
-			UIElements[UIDestination::Settings][elementIndex]->Render(renderer);
+			topScores = dbManager->getTopScores(DEFAULT_SCORE_LIMIT);
+
+			for (auto& uiElement : UIElements[UIDestination::Leaderboard])
+			{
+				Leaderboard* leaderboard = dynamic_cast<Leaderboard*>(uiElement.get());
+
+				if (leaderboard)
+				{
+					leaderboard->UpdateTopScores(topScores);
+				}
+			}
 		}
 	}
 
@@ -1482,11 +1651,27 @@ namespace GameNamespace
 		}
 	}
 
+	void Game::UpdateUsernameFromTextInput(std::string& text)
+	{
+		game->username = text;
+	}
+
 	void Game::HandleKeyDown(SDL_Keycode keyCode, UIDestination destination)
 	{
 		for (int elementIndex{}; elementIndex < UIElements[destination].size(); elementIndex++)
 		{
 			UIElements[destination][elementIndex]->HandleKeyDown(keyCode);
 		}
+	}
+
+	std::string Game::GetCurrentTimeString() 
+	{
+		std::time_t now{ std::time(nullptr) };
+		std::tm* tmPtr{ std::localtime(&now) };
+		std::ostringstream oss{};
+
+		oss << std::put_time(tmPtr, "%Y-%m-%d %H:%M:%S");
+
+		return oss.str();
 	}
 }

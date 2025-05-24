@@ -8,11 +8,13 @@ namespace GameNamespace
         TTF_Font* font,
         SDL_Color textColor,
         SDL_Color caretColor,
-        int textMaxLength
+        int textMaxLength,
+        void (*onKeyDown)(std::string&)
     ): 
         textColor(textColor),
         caretColor(caretColor),
-        textMaxLength(textMaxLength)
+        textMaxLength(textMaxLength),
+        onKeyDown(onKeyDown)
     {
         if (texture == NULL)
         {
@@ -71,6 +73,11 @@ namespace GameNamespace
                 {
                     text.insert(caretPosition++, 1, c);
 
+                    if (onKeyDown)
+                    {
+                        onKeyDown(text);
+                    }
+
                     ScrollTextIfNeeded();
                 }
             }
@@ -87,6 +94,11 @@ namespace GameNamespace
                 if (caretPosition > 0)
                 {
                     text.erase(--caretPosition, 1);
+
+                    if (onKeyDown)
+                    {
+                        onKeyDown(text);
+                    }
                 }
 
                 break;
@@ -105,6 +117,9 @@ namespace GameNamespace
                     caretPosition++;
                 }
 
+                break;
+
+            default:
                 break;
             }
 

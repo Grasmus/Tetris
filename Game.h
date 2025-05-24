@@ -5,17 +5,22 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "ResourceHandler.h"
 #include "TextInput.h"
 #include "Strings.h"
 #include "SettingsElement.h"
+#include "DatabaseManager.h"
+#include "Leaderboard.h"
 
 namespace GameNamespace
 {
 	enum class UIDestination
 	{
 		Menu,
-		Settings
+		Settings,
+		Leaderboard,
+		EnterUsername
 	};
 
 	class Game
@@ -30,10 +35,15 @@ namespace GameNamespace
 		bool IsRunning() const;
 		int GetFrameDelay() const;
 		void ResetFigurePosition();
+		void UpdateTopScores();
 
+		static void EnterUsername();
 		static void StartGame();
 		static void EnterSettings();
 		static void SaveSettings();
+		static void EnterLeaderboard();
+		static void EnterMenu();
+		static void UpdateUsernameFromTextInput(std::string& text);
 
 		static Game* Init();
 
@@ -45,6 +55,7 @@ namespace GameNamespace
 		std::unique_ptr<ResourceHandler> resourceHandler{};
 		std::unique_ptr<Settings> settings{};
 		std::unique_ptr<Layout> layout{};
+		std::unique_ptr<Leaderboard> leaderboard{};
 		std::vector<std::vector<int>> board{};
 		FigureKind currentFigure{};
 		FigureKind nextFigure{};
@@ -61,6 +72,16 @@ namespace GameNamespace
 
 		int currentFrame{};
 		int score{};
+
+		std::unique_ptr<DatabaseManager> dbManager{};
+		std::string username{};
+		std::string gameStartTime{};
+
+		bool isScoreSaved = false;
+
+		std::vector<ScoreEntry> topScores;
+
+		SDL_Rect playButtonRect{};
 
 		void HandleGameEvent(SDL_Event event, UIDestination destination, GameState exitState);
 		void HandleGameEvent(SDL_Event event);
@@ -109,33 +130,6 @@ namespace GameNamespace
 		void CreateUI();
 		void ChangeWindowSize();
 
-		Button* CreateButton(
-			SDL_Rect buttonRect,
-			Font font,
-			Color color,
-			const char* text,
-			void (*function)()
-		);
-
-		TextInput* CreateTextInput(
-			SDL_Rect textInputRect,
-			Font font,
-			Color textColor,
-			Color caretteColor,
-			int textMaxLenght
-		);
-
-		SettingsElement* CreateSettingsElement(
-			SDL_Point position,
-			int width,
-			SettingsType settingType,
-			const char* settingName,
-			std::vector<std::string> values,
-			int currentValueIndex,
-			Font font,
-			Color textColor
-		);
-
 		void AddButton(
 			SDL_Rect buttonRect,
 			Font font,
@@ -151,6 +145,15 @@ namespace GameNamespace
 			Color textColor,
 			Color caretteColor,
 			int textMaxLenght,
+			void (*onTextInput)(std::string&),
+			UIDestination destination
+		);
+
+		void AddTextView(
+			SDL_Rect textViewRect,
+			const char* text,
+			Font font,
+			Color textColor,
 			UIDestination destination
 		);
 
@@ -165,8 +168,18 @@ namespace GameNamespace
 			Color textColor
 		);
 
-		void RenderMenu();
-		void RenderSettings();
+		void AddLeaderboard(
+			SDL_Rect rect,
+			int padding,
+			std::vector<ScoreEntry> topScores,
+			Font font,
+			Color textColor,
+			Color backgroundColor
+		);
+
+		void RenderElements(UIDestination destination);
+
+		std::string GetCurrentTimeString();
 
 		void HandleMouseLeftClick(int mouseCoordinateX, int mouseCoordinateY, UIDestination destination);
 		void HandleTextInput(const char* tex, UIDestination destinationt);
