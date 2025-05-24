@@ -92,4 +92,16 @@ namespace GameNamespace
 			return "Invalid settings type";
 		}
 	};
+
+	struct DatabaseOpenException : public std::exception {
+		const char* what() const throw () {
+			return "Cannot open database";
+		}
+	};
+
+	struct DatabaseCreateTableException : public std::exception {
+		const char* what() const throw () {
+			return "Failed to create table";
+		}
+	};
 };

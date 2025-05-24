@@ -119,10 +119,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>F:\MyProjects\Tetris\Tetris\SDL2_ttf\include;F:\MyProjects\Tetris\Tetris\SDL2_image\include;F:\MyProjects\Tetris\Tetris\SDL2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>F:\MyProjects\Tetris\Tetris\SDL2_ttf\lib;F:\MyProjects\Tetris\Tetris\SDL2_image\lib;F:\MyProjects\Tetris\Tetris\SDL2\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;F:\MyProjects\Tetris\Tetris\SDL2_ttf\lib\x64\SDL2_ttf.lib;F:\MyProjects\Tetris\Tetris\SDL2_image\lib\x64\SDL2_image.lib;F:\MyProjects\Tetris\Tetris\SDL2\lib\x64\SDL2main.lib;F:\MyProjects\Tetris\Tetris\SDL2\lib\x64\SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,26 +146,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Button.cpp" />
+    <ClCompile Include="DatabaseManager.cpp" />
     <ClCompile Include="Layout.cpp" />
+    <ClCompile Include="Leaderboard.cpp" />
+    <ClCompile Include="LeaderboardRow.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="ResourceHandler.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="SettingsElement.cpp" />
+    <ClCompile Include="sqlite3.c" />
     <ClCompile Include="TextInput.cpp" />
     <ClCompile Include="TextView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
     <ClInclude Include="Constants.h" />
+    <ClInclude Include="DatabaseManager.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameExceptions.h" />
     <ClInclude Include="Layout.h" />
+    <ClInclude Include="Leaderboard.h" />
+    <ClInclude Include="LeaderboardRow.h" />
     <ClInclude Include="resource4.h" />
     <ClInclude Include="ResourceHandler.h" />
     <ClInclude Include="Resources.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="SettingsElement.h" />
+    <ClInclude Include="sqlite3.h" />
     <ClInclude Include="Strings.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="TextView.h" />
@@ -174,7 +185,17 @@
   <ItemGroup>
     <Image Include="Textures\icon256.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\sqlite3.3.8.8.3\build\native\sqlite3.targets" Condition="Exists('packages\sqlite3.3.8.8.3\build\native\sqlite3.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\sqlite3.3.8.8.3\build\native\sqlite3.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\sqlite3.3.8.8.3\build\native\sqlite3.targets'))" />
+  </Target>
 </Project>

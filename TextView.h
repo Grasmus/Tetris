@@ -7,7 +7,7 @@
 
 namespace GameNamespace
 {
-	class TextView : UIElement
+	class TextView : public UIElement
 	{
 	public:
 		TextView(

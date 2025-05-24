@@ -21,7 +21,8 @@ namespace GameNamespace
         1, // Scene
         19, // Button
         0, // Score
-        8 // TextInput
+        8, // TextInput
+        75 // Title
     };
 
     const double FONT_SCALERS[FONTS_AMOUNT]
@@ -30,6 +31,7 @@ namespace GameNamespace
         0.014285,
         0.026785,
         0.025571,
-        0.014285
+        0.014285,
+        0.04
     };
 }

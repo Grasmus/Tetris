@@ -19,7 +19,11 @@ namespace GameNamespace
         SCORE_MAX_VALUE{ 99999 },
 
         TEXT_INPUT_CARRET_BLINK_MS{ 500 },
-        TEXT_INPUT_CARRET_WIDTH{ 2 };
+        TEXT_INPUT_CARRET_WIDTH{ 2 },
+       
+        DEFAULT_SCORE_LIMIT{ 5 },
+        
+        USERNAME_MAX_LENGTH{ 16 };
 
     const float
         TEXT_INPUT_RECT_OFFSET_COEF{ 0.1 },
@@ -204,6 +208,7 @@ namespace GameNamespace
         Button,
         Score,
         TextInput,
+        Title,
 
         AMOUNT // this value should always be last in enum
     };
@@ -213,7 +218,7 @@ namespace GameNamespace
     enum class Texture
     {
         Block,
-        Backgroun,
+        Background,
         Board,
         InfoBlock,
         TextInput,
@@ -236,7 +241,9 @@ namespace GameNamespace
         Running,
         Paused,
         GameOver,
-        Settings
+        Settings,
+        Leaderboard,
+        EnterUsername
     };
 
     enum class PieceMovement
